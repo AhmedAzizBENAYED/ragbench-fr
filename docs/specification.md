@@ -327,13 +327,19 @@ Les seuils sont dans un fichier versionné (`gate/thresholds.yaml`) : les releve
 
 `uv` (dépendances + lockfile), Python **3.12**, `ruff`, `mypy --strict`, `pytest` (+ `pytest-cov`), `pre-commit`, `typer` (CLI), `pydantic` / `pydantic-settings` (config et sorties structurées), `structlog` (logs JSON), `matplotlib` (graphiques).
 
-### D8 — Langue du repo ❓
+Tranché dans l'[ADR 0001](adr/0001-python-tooling.md) (T01). Chaque bibliothèque est ajoutée par le ticket qui l'utilise en premier.
+
+### D8 — Langue du repo ✅
 
 Proposition : **code, README et ADR en anglais** (portée internationale, cohérent avec ton GitHub) ; **données, prompts et rapport de résultats en français**, puisque c'est le sujet du projet. Ce document de spécification peut rester en français.
 
-### D9 — Nom du projet ❓
+Tranché dans l'[ADR 0002](adr/0002-repository-language.md) (T01) : la proposition est retenue, et s'étend aux docstrings, à `CLAUDE.md` et aux messages de commit (en anglais).
+
+### D9 — Nom du projet ✅
 
 `ragbench-fr` (proposé), `rag-arena-fr`, `evalrag-fr`.
+
+Retenu (T01) : dépôt et distribution `ragbench-fr`, package Python `ragbench`, commande `ragbench`.
 
 ---
 
@@ -433,6 +439,6 @@ Le fichier `CLAUDE.md` du repo reprendra ces règles, pour que chaque session Cl
 1. **D1** base vectorielle : pgvector + mémoire (recommandé), mémoire seule, ou LanceDB ?
 2. **D3** générateur par défaut : Groq (rapide) ou Ollama (local, plus lent) ?
 3. **D6** démo : explorateur seul (recommandé) ou avec mode live ?
-4. **D8** langue du repo : anglais pour code et docs, français pour données et rapport ?
-5. **D9** nom du projet ?
+4. ~~**D8** langue du repo : anglais pour code et docs, français pour données et rapport ?~~ Tranché : voir [ADR 0002](adr/0002-repository-language.md).
+5. ~~**D9** nom du projet ?~~ Tranché : `ragbench-fr`.
 6. Taille du split `test` : 200, 250 ou 300 questions (compromis précision statistique / quota du juge) ?

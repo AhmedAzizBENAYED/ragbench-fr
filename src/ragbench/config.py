@@ -14,6 +14,7 @@ from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -29,6 +30,18 @@ from ragbench.hashing import canonical_hash
 from ragbench.log import LogFormat, LogLevel
 
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def _require_commit_sha(value: str) -> str:
+    if not _COMMIT_SHA.fullmatch(value):
+        raise ValueError(
+            "must be a full 40-character lowercase hex commit SHA, not a branch or tag name"
+        )
+    return value
+
+
+CommitSha = Annotated[str, AfterValidator(_require_commit_sha)]
+"""An immutable revision: a full lowercase hex commit SHA (branch and tag names are rejected)."""
 
 
 class Settings(BaseSettings):
@@ -97,8 +110,9 @@ def _format_loc(loc: tuple[int | str, ...]) -> str:
     return "".join(parts) or "<root>"
 
 
-class _FrozenModel(BaseModel):
-    # Immutable, and a typo in the YAML is an error rather than a silently ignored key.
+class FrozenModel(BaseModel):
+    """Base for YAML-backed configs: immutable, and a typo is an error, not an ignored key."""
+
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
@@ -128,36 +142,27 @@ class PipelineName(StrEnum):
     SELF_RAG = "self-rag"
 
 
-class DataConfig(_FrozenModel):
+class DataConfig(FrozenModel):
     """Dataset, pinned to an immutable revision, and the split to run."""
 
     dataset: str = Field(default="AgentPublic/piaf", min_length=1)
-    revision: str
+    revision: CommitSha
     split: Split
 
-    @field_validator("revision")
-    @classmethod
-    def _require_commit_sha(cls, value: str) -> str:
-        if not _COMMIT_SHA.fullmatch(value):
-            raise ValueError(
-                "must be a full 40-character lowercase hex commit SHA, not a branch or tag name"
-            )
-        return value
 
-
-class EmbeddingConfig(_FrozenModel):
+class EmbeddingConfig(FrozenModel):
     """Embedding model shared by every pipeline of the run."""
 
     model: str = Field(default="intfloat/multilingual-e5-base", min_length=1)
 
 
-class RetrievalConfig(_FrozenModel):
+class RetrievalConfig(FrozenModel):
     """Retrieval parameters shared by every pipeline of the run."""
 
     k: int = Field(default=5, ge=1)
 
 
-class LLMSpec(_FrozenModel):
+class LLMSpec(FrozenModel):
     """A model on a provider, with its generation parameters."""
 
     provider: Provider
@@ -166,33 +171,33 @@ class LLMSpec(_FrozenModel):
     max_tokens: int = Field(gt=0)
 
 
-class ClosedBookPipeline(_FrozenModel):
+class ClosedBookPipeline(FrozenModel):
     """Answers without context; one LLM call by construction."""
 
     name: Literal[PipelineName.CLOSED_BOOK]
 
 
-class NaiveRagPipeline(_FrozenModel):
+class NaiveRagPipeline(FrozenModel):
     """Retrieves top-k then generates; one LLM call by construction."""
 
     name: Literal[PipelineName.NAIVE_RAG]
 
 
-class AdaptiveRagPipeline(_FrozenModel):
+class AdaptiveRagPipeline(FrozenModel):
     """Routes the question, then answers directly, retrieves or reformulates."""
 
     name: Literal[PipelineName.ADAPTIVE_RAG]
     max_llm_calls: int = Field(default=3, ge=0)
 
 
-class CragPipeline(_FrozenModel):
+class CragPipeline(FrozenModel):
     """Grades retrieved documents and reformulates the query when none is relevant."""
 
     name: Literal[PipelineName.CRAG]
     max_reformulations: int = Field(default=1, ge=0)
 
 
-class SelfRagPipeline(_FrozenModel):
+class SelfRagPipeline(FrozenModel):
     """Generates, grades the answer, then regenerates or reformulates if needed."""
 
     name: Literal[PipelineName.SELF_RAG]
@@ -205,7 +210,7 @@ PipelineSpec = Annotated[
 ]
 
 
-class RunConfig(_FrozenModel):
+class RunConfig(FrozenModel):
     """Everything that can change a result (spec §6). Loaded from a versioned YAML file."""
 
     name: str = Field(min_length=1)

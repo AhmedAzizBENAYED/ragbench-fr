@@ -32,10 +32,14 @@ report: French.
 
 ## Architecture rules
 
+- Anything that can change a result goes in `RunConfig` (versioned YAML); `Settings` (env) only
+  holds secrets, paths and infrastructure knobs (ADR 0003).
 - No business module calls a provider SDK directly: everything goes through `LLMClient`.
 - Prompts live in `prompts/`, never hard-coded in Python.
 - No network in unit tests (enforced by pytest-socket in `tests/unit/conftest.py`); use
   deterministic fake `LLMClient` and `Embedder`.
+- Tests run in a temporary working directory: read repository files via `tests.paths.REPO_ROOT`,
+  never relative paths.
 - No secrets in code or history; configuration via environment / `.env` (git-ignored).
 - Structured logs (JSON), no `print`.
 - Explicit error handling: never `except Exception: pass`.

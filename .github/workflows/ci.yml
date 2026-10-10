@@ -37,6 +37,17 @@ jobs:
       - name: Check formatting
         run: make format-check
 
+      # mypy follows imports into torch and transformers: a cold run is several times slower.
+      # Exact key = same lockfile and sources; restore-keys reuse the latest cache for the same
+      # lockfile (mypy then only rechecks what changed).
+      - name: Restore mypy cache
+        uses: actions/cache@v6
+        with:
+          path: .mypy_cache
+          key: mypy-${{ runner.os }}-${{ hashFiles('uv.lock') }}-${{ hashFiles('src/**/*.py', 'tests/**/*.py', 'pyproject.toml') }}
+          restore-keys: |
+            mypy-${{ runner.os }}-${{ hashFiles('uv.lock') }}-
+
       - name: Type-check
         run: make typecheck
 

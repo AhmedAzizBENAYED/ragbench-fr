@@ -17,7 +17,7 @@ from ragbench.config import (
     dump_run_config,
     load_run_config,
 )
-from tests.constants import EXAMPLE_CONFIG, EXAMPLE_FINGERPRINT, PIAF_REVISION
+from tests.constants import E5_REVISION, EXAMPLE_CONFIG, EXAMPLE_FINGERPRINT, PIAF_REVISION
 
 
 def _minimal() -> dict[str, Any]:
@@ -25,6 +25,7 @@ def _minimal() -> dict[str, Any]:
         "name": "minimal",
         "seed": 1,
         "data": {"revision": PIAF_REVISION, "split": "ci"},
+        "embedding": {"revision": E5_REVISION},
         "generator": {"provider": "ollama", "model": "some-model", "max_tokens": 256},
         "judge": {"provider": "gemini", "model": "other-model", "max_tokens": 512},
         "pipelines": [{"name": "naive-rag"}, {"name": "crag"}],
@@ -135,6 +136,14 @@ def test_out_of_range_values_are_rejected(section: str, field: str, value: Any, 
     data[section][field] = value
 
     assert f"config.yaml: {loc}: " in str(_config_error(data))
+
+
+def test_embedding_revision_is_required_and_must_be_a_commit_sha() -> None:
+    missing = _minimal() | {"embedding": {"model": "intfloat/multilingual-e5-base"}}
+    branch = _minimal() | {"embedding": {"revision": "main"}}
+
+    assert "config.yaml: embedding.revision: Field required" in str(_config_error(missing))
+    assert "embedding.revision: Value error, must be a full" in str(_config_error(branch))
 
 
 def test_negative_cap_is_rejected() -> None:
@@ -298,6 +307,7 @@ def test_fingerprint_changes_with_k() -> None:
     [
         (("seed",), 2),
         (("data", "revision"), "0" * 40),
+        (("embedding", "revision"), "1" * 40),
         (("data", "split"), "test"),
         (("generator", "temperature"), 0.7),
         (("judge", "model"), "another-judge"),
@@ -340,7 +350,10 @@ def test_dump_writes_resolved_defaults() -> None:
     dumped = yaml.safe_load(Path("resolved.yaml").read_text(encoding="utf-8"))
 
     assert dumped["retrieval"] == {"k": 5}
-    assert dumped["embedding"] == {"model": "intfloat/multilingual-e5-base"}
+    assert dumped["embedding"] == {
+        "model": "intfloat/multilingual-e5-base",
+        "revision": E5_REVISION,
+    }
     assert dumped["pipelines"][1] == {"name": "crag", "max_reformulations": 1}
 
 

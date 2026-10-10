@@ -10,10 +10,13 @@ EXAMPLE_CONFIG = REPO_ROOT / "configs" / "example.yaml"
 # Commit SHA of AgentPublic/piaf pinned by the repository configs.
 PIAF_REVISION = "bda8c063bc7297180796cd835d1974c0bc71c521"
 
+# Commit SHA of intfloat/multilingual-e5-base pinned by the repository configs.
+E5_REVISION = "d128750597153bb5987e10b1c3493a34e5a4502a"
+
 # Golden fingerprint of configs/example.yaml. It changes whenever a result-affecting value of the
 # example (or a default it relies on) changes. If the change is intended, update this value; it
 # means runs made with the previous config are no longer comparable or reusable from cache.
-EXAMPLE_FINGERPRINT = "ef0d7e55e98b147b09fbba1ca295f21962f823ce0d133b9cdea16015d485500d"
+EXAMPLE_FINGERPRINT = "76b54d94a1ab31c4077cf3be50b2e2abb70f37d05b2fbceba81e2d2692a4f4e3"
 
 # Mini PIAF file with deliberate traps (duplicated context, missing answer, empty question...).
 PIAF_MINI = REPO_ROOT / "tests" / "fixtures" / "piaf_mini.json"

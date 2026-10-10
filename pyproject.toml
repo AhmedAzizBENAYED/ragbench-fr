@@ -9,11 +9,14 @@ authors = [{ name = "Ahmed Aziz Ben Ayed" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "huggingface-hub>=2.2.0",
+    "numpy>=2.5.4",
     "pyarrow>=26.0.0",
     "pydantic>=2.14.0",
     "pydantic-settings>=2.15.0",
     "pyyaml>=6.0.3",
+    "sentence-transformers>=5.7.0",
     "structlog>=26.1.0",
+    "torch>=2.14.1",
     "typer",
 ]
 
@@ -41,6 +44,16 @@ packages = ["src/ragbench"]
 
 [tool.uv]
 required-version = ">=0.13.0"
+
+# torch comes from the CPU-only PyTorch index on every platform: PyPI's Linux wheels pull several
+# GB of CUDA libraries (nvidia-*), useless for CPU embeddings in CI and on laptops.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100

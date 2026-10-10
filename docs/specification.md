@@ -62,7 +62,7 @@ Un **banc d'évaluation reproductible**, en français, qui :
 | **FR-4** | Pour chaque question et chaque pipeline, enregistrer : réponse, documents récupérés, **trace des étapes** (nœuds traversés, décisions de routage, nombre de corrections), appels LLM, tokens et latence. |
 | **FR-5** | Calculer les métriques déterministes (récupération, EM/F1) et les métriques jugées par LLM (§8). |
 | **FR-6** | Produire un rapport : tableau comparatif avec IC 95 %, tests de significativité appariés, graphiques qualité/coût. |
-| **FR-7** | Fournir une CLI : `build-corpus`, `build-index`, `run`, `report`, `gate`. |
+| **FR-7** | Fournir une CLI : `validate-config` (valide une config de run et affiche son empreinte), `build-corpus`, `build-index`, `run`, `report`, `gate`. |
 | **FR-8** | Reprendre un run interrompu sans refaire les appels déjà effectués (cache + checkpoints). |
 | **FR-9** | Quality gate : comparer un run CI à des seuils versionnés et renvoyer un code de sortie non nul en cas de régression. |
 | **FR-10** | Démo web : parcourir les questions de test, voir côte à côte les réponses et traces des 5 pipelines, et leurs scores. |
@@ -253,7 +253,7 @@ flowchart LR
 
 ```
 results/runs/<run_id>/
-  config.yaml          # config complète résolue (modèles, k, prompts + hash, seed)
+  config.yaml          # config complète résolue (modèles, k, prompts + hash, seed), écrite par dump_run_config
   predictions.jsonl    # une ligne par (question, pipeline) : réponse, docs, trace, usage
   scores.jsonl         # métriques par (question, pipeline)
   summary.json         # agrégats + IC
@@ -367,6 +367,7 @@ ragbench-fr/
 ├── pyproject.toml / uv.lock
 ├── src/ragbench/
 │   ├── config.py            # settings (pydantic-settings) + config de run (YAML)
+│   ├── log.py               # logs structurés (structlog), sur stderr
 │   ├── data/                # piaf loader, corpus builder, splits, manifest
 │   ├── index/               # embedder, VectorStore: memory + pgvector
 │   ├── llm/                 # LLMClient, providers/, cache, rate limiter, usage

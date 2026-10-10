@@ -38,8 +38,8 @@ report: French.
 - Prompts live in `prompts/`, never hard-coded in Python.
 - No network in unit tests (enforced by pytest-socket in `tests/unit/conftest.py`); use
   deterministic fake `LLMClient` and `Embedder`.
-- Tests run in a temporary working directory: read repository files via `tests.paths.REPO_ROOT`,
-  never relative paths.
+- Tests run in a temporary working directory: read repository files via `tests.constants.REPO_ROOT`,
+  never relative paths. Test modules never import from other test modules.
 - No secrets in code or history; configuration via environment / `.env` (git-ignored).
 - Structured logs (JSON), no `print`.
 - Explicit error handling: never `except Exception: pass`.

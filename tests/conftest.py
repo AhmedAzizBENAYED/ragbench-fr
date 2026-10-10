@@ -2,7 +2,7 @@
 
 Every test runs in an empty temporary directory, so relative paths (such as `.env`) never reach
 the repository, without ragbench environment variables and with a fresh `get_settings()`.
-Tests that read repository files must use `REPO_ROOT` from `tests.paths`.
+Tests that read repository files must use `REPO_ROOT` from `tests.constants`.
 """
 
 import logging

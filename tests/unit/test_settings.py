@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from ragbench.config import Settings, get_settings
 from ragbench.log import configure_logging, get_logger
-from tests.paths import REPO_ROOT
+from tests.constants import REPO_ROOT
 
 FAKE_KEY = "gsk-fake-0123456789"
 

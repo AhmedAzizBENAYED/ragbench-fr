@@ -41,6 +41,8 @@ report: French.
 - Tests run in a temporary working directory: read repository files via `tests.constants.REPO_ROOT`,
   never relative paths. Test modules never import from other test modules.
 - No secrets in code or history; configuration via environment / `.env` (git-ignored).
+- Any logic change in an embedder (prefixes, normalisation, pooling) must bump its
+  `IMPLEMENTATION_VERSION` (part of `identity` and cache keys), or stale vectors are served.
 - Structured logs (JSON), no `print`.
 - Explicit error handling: never `except Exception: pass`.
 

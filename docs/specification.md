@@ -177,6 +177,8 @@ class PipelineResult:
 | Recall@k, MRR | Le document d'origine est-il dans le top-k, et à quel rang ? |
 | Exact Match, F1 lexical | Comparaison avec la réponse de référence, après **normalisation française** (minuscules, accents, articles « le/la/les/l'/un/une/des », ponctuation) |
 
+**Plafond de récupération (T05, T13) :** avec k = 5, le recall@5 mesuré sur `dev` est de 0,90 (T04) : environ 10 % des questions n'ont pas leur document dans le contexte. C'est un plafond pour tous les pipelines RAG, que le rapport devra rappeler.
+
 ⚠️ Les réponses PIAF sont **extractives et courtes** ; un LLM génère des phrases. L'EM sera donc sévère : on retient le F1 et une métrique *« la réponse de référence est contenue dans la réponse »* comme indicateurs lexicaux, et la **justesse jugée par LLM** comme métrique principale.
 
 ### 8.2 Jugées par LLM
@@ -284,11 +286,22 @@ Chaque décision sera formalisée en ADR (`docs/adr/NNN-titre.md`) une fois tran
 
 **Recommandation : A.** Le contrat `VectorStore` a de toute façon deux implémentations naturelles : pgvector pour le benchmark, en mémoire pour la démo et les tests unitaires. Ça démontre aussi le principe d'inversion de dépendance, que tu pourras expliquer en entretien.
 
-### D2 — Modèle d'embedding ✅ (à confirmer)
+### D2 — Modèle d'embedding ✅
 
-`intfloat/multilingual-e5-base` via `sentence-transformers`, sur CPU.
+`intfloat/multilingual-e5-base` via `sentence-transformers`, sur CPU (torch CPU uniquement), à la révision épinglée `d128750597153bb5987e10b1c3493a34e5a4502a` (`embedding.revision`, obligatoire dans la `RunConfig`). Tranché au T04 ([ADR 0005](adr/0005-embedder.md)).
 - Multilingue, bon en français, taille raisonnable pour la CI.
-- ⚠️ Exige les préfixes `query: ` / `passage: ` : erreur classique à couvrir par un test.
+- ⚠️ Exige les préfixes `query: ` / `passage: ` : ils sont internes à l'implémentation (`embed_queries` / `embed_passages`), l'appelant ne les voit jamais.
+- Modèle téléchargé : 1,1 Go (safetensors + tokenizer). Aucun contexte PIAF ne dépasse 512 tokens (max 304).
+- Mesure sur `dev` (n = 100, corpus complet de 761 passages) :
+
+  | Variante | top-1 | recall@5 | recall@10 | MRR |
+  |---|---|---|---|---|
+  | **Préfixes e5** (`query:` / `passage:`) | **0,69** | 0,90 | 0,95 | 0,779 |
+  | Sans préfixes | 0,70 | 0,88 | 0,96 | 0,785 |
+  | `query:` seul | 0,68 | 0,90 | 0,95 | 0,774 |
+  | Préfixes inversés | 0,60 | 0,85 | 0,92 | 0,723 |
+
+  L'hypothèse « sans préfixes, c'est moins bon » **n'est pas confirmée** sur `dev` (écart d'une question, non significatif). L'inversion des préfixes coûte en revanche 9 points de top-1. On garde les préfixes, conformément à la model card ; le test d'intégration vérifie que les préfixes corrects battent les préfixes inversés.
 - `nomic-embed-text` (utilisé dans PriceWatch) est surtout entraîné sur de l'anglais : moins adapté ici.
 - Alternative plus forte mais plus lourde : `BAAI/bge-m3`.
 
@@ -319,6 +332,8 @@ Deux niveaux :
 3. **Run complet :** manuel (`workflow_dispatch`) ou en local, jamais à chaque push.
 
 Les seuils sont dans un fichier versionné (`gate/thresholds.yaml`) : les relever devient une décision explicite visible dans une PR.
+
+**Note pour T17 :** le gate de récupération ne doit ni télécharger le modèle (1,1 Go, 223 s mesurées) ni réencoder le corpus (71 s) à chaque push. La CI mettra en cache le cache Hugging Face et `embeddings.sqlite3`, avec une clé basée sur l'`identity` de l'embedder et le hash du manifeste.
 
 ### D6 — Démo ❓
 

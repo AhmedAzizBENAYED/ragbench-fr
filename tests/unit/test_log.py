@@ -7,7 +7,14 @@ from typing import Any
 import pytest
 import structlog
 
-from ragbench.log import REDACTED, configure_logging, get_logger, is_sensitive_key
+from ragbench.log import (
+    NOISY_LOGGERS,
+    REDACTED,
+    LogLevel,
+    configure_logging,
+    get_logger,
+    is_sensitive_key,
+)
 
 
 def _json_lines(text: str) -> list[dict[str, Any]]:
@@ -148,3 +155,18 @@ def test_sensitive_keys(key: str) -> None:
 )
 def test_non_sensitive_keys(key: str) -> None:
     assert not is_sensitive_key(key)
+
+
+@pytest.mark.parametrize(("level", "expected"), [("DEBUG", "WARNING"), ("ERROR", "ERROR")])
+def test_noisy_third_party_loggers_are_quieted(
+    capsys: pytest.CaptureFixture[str], level: LogLevel, expected: str
+) -> None:
+    configure_logging(level, "json")
+
+    for name in NOISY_LOGGERS:
+        assert logging.getLevelName(logging.getLogger(name).level) == expected
+    logging.getLogger("httpx2").info("HTTP Request: GET https://huggingface.co")
+    logging.getLogger("huggingface_hub.file_download").warning("disk almost full")
+
+    events = [line["event"] for line in _json_lines(capsys.readouterr().err)]
+    assert events == (["disk almost full"] if level == "DEBUG" else [])

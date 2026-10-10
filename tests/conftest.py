@@ -13,6 +13,7 @@ import pytest
 import structlog
 
 from ragbench.config import get_settings
+from ragbench.log import NOISY_LOGGERS
 
 _UNPREFIXED_VARIABLES = frozenset({"GROQ_API_KEY", "GEMINI_API_KEY"})
 
@@ -32,7 +33,10 @@ def _isolate_environment(
 def _reset_logging() -> Iterator[None]:
     root = logging.getLogger()
     handlers, level = list(root.handlers), root.level
+    noisy_levels = {name: logging.getLogger(name).level for name in NOISY_LOGGERS}
     yield
+    for name, noisy_level in noisy_levels.items():
+        logging.getLogger(name).setLevel(noisy_level)
     structlog.reset_defaults()
     structlog.contextvars.clear_contextvars()
     root.handlers[:] = handlers

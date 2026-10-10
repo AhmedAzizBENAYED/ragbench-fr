@@ -88,7 +88,11 @@ markers = [
 [tool.coverage.run]
 source = ["ragbench"]
 branch = true
-omit = ["src/ragbench/llm/providers/*"]
+# Thin adapters to heavy third-party runtimes (NFR-6): exercised by integration tests only.
+omit = [
+    "src/ragbench/llm/providers/*",
+    "src/ragbench/index/_st_backend.py",
+]
 
 [tool.coverage.report]
 fail_under = 80

@@ -25,6 +25,21 @@ _SEPARATORS = re.compile(r"[\W_]+")
 
 _HANDLER_NAME = "ragbench"
 
+# Third-party loggers that log every HTTP request, lock or model-loading step at INFO/DEBUG.
+# They are raised to WARNING (or to the configured level if it is higher).
+# `transformers` also installs its own handler: the embedder re-routes it when loading the model.
+NOISY_LOGGERS = (
+    "filelock",
+    "httpcore",
+    "httpcore2",
+    "httpx",
+    "httpx2",
+    "huggingface_hub",
+    "sentence_transformers",
+    "transformers",
+    "urllib3",
+)
+
 
 def is_sensitive_key(key: str) -> bool:
     """Return whether a log key looks like it holds a secret (e.g. `api_key`, `Authorization`)."""
@@ -104,6 +119,10 @@ def configure_logging(level: LogLevel = "INFO", fmt: LogFormat = "json") -> None
         root.removeHandler(existing)
     root.addHandler(handler)
     root.setLevel(level)
+    # Propagated records are not filtered by the root level, hence max(WARNING, level).
+    noisy_level = max(logging.WARNING, logging.getLevelNamesMapping()[level])
+    for name in NOISY_LOGGERS:
+        logging.getLogger(name).setLevel(noisy_level)
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:

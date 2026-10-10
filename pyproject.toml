@@ -8,6 +8,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Ahmed Aziz Ben Ayed" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "structlog>=26.1.0",
     "typer",
 ]
 

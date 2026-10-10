@@ -8,7 +8,7 @@ from typer.testing import CliRunner
 
 import ragbench
 from ragbench.cli import EXIT_INVALID_CONFIG, EXIT_INVALID_ENVIRONMENT, _version_callback, app
-from tests.unit.test_run_config import EXAMPLE_CONFIG, EXAMPLE_FINGERPRINT, SHA
+from tests.constants import EXAMPLE_CONFIG, EXAMPLE_FINGERPRINT, PIAF_REVISION
 
 runner = CliRunner()
 
@@ -51,7 +51,11 @@ def test_validate_config_prints_fingerprint_on_stdout_and_logs_on_stderr() -> No
     [
         ("  k: 5", "  k: 0", "retrieval.k: Input should be greater than or equal to 1"),
         ("  k: 5", "  k: 5\n  top_k: 3", "retrieval.top_k: Extra inputs are not permitted"),
-        (f'revision: "{SHA}"', "revision: main", "data.revision: Value error, must be a full"),
+        (
+            f'revision: "{PIAF_REVISION}"',
+            "revision: main",
+            "data.revision: Value error, must be a full",
+        ),
     ],
 )
 def test_validate_config_reports_invalid_config_on_stderr(

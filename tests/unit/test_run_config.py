@@ -17,22 +17,14 @@ from ragbench.config import (
     dump_run_config,
     load_run_config,
 )
-from tests.paths import REPO_ROOT
-
-EXAMPLE_CONFIG = REPO_ROOT / "configs" / "example.yaml"
-SHA = "bda8c063bc7297180796cd835d1974c0bc71c521"
-
-# Golden fingerprint of configs/example.yaml. It changes whenever a result-affecting value of the
-# example (or a default it relies on) changes. If the change is intended, update this value; it
-# means runs made with the previous config are no longer comparable or reusable from cache.
-EXAMPLE_FINGERPRINT = "ef0d7e55e98b147b09fbba1ca295f21962f823ce0d133b9cdea16015d485500d"
+from tests.constants import EXAMPLE_CONFIG, EXAMPLE_FINGERPRINT, PIAF_REVISION
 
 
 def _minimal() -> dict[str, Any]:
     return {
         "name": "minimal",
         "seed": 1,
-        "data": {"revision": SHA, "split": "ci"},
+        "data": {"revision": PIAF_REVISION, "split": "ci"},
         "generator": {"provider": "ollama", "model": "some-model", "max_tokens": 256},
         "judge": {"provider": "gemini", "model": "other-model", "max_tokens": 512},
         "pipelines": [{"name": "naive-rag"}, {"name": "crag"}],
@@ -115,7 +107,9 @@ def test_k_zero_is_rejected() -> None:
     )
 
 
-@pytest.mark.parametrize("revision", ["main", SHA[:7], SHA.upper(), SHA + "0", "refs/pr/3"])
+@pytest.mark.parametrize(
+    "revision", ["main", PIAF_REVISION[:7], PIAF_REVISION.upper(), PIAF_REVISION + "0", "refs/pr/3"]
+)
 def test_revision_must_be_a_full_commit_sha(revision: str) -> None:
     data = _minimal()
     data["data"]["revision"] = revision

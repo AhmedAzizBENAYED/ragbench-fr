@@ -5,8 +5,6 @@ Guiding rule: anything that can change a result belongs to `RunConfig` (a versio
 a result.
 """
 
-import hashlib
-import json
 import re
 from collections.abc import Sequence
 from enum import StrEnum
@@ -27,6 +25,7 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ragbench.hashing import canonical_hash
 from ragbench.log import LogFormat, LogLevel
 
 _COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
@@ -236,15 +235,14 @@ class RunConfig(_FrozenModel):
         """
         data = self.model_dump(mode="json", exclude={"name", "description"})
         data["pipelines"] = sorted(data["pipelines"], key=lambda pipeline: pipeline["name"])
-        canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        return canonical_hash(data)
 
 
-def load_run_config(path: Path | str) -> RunConfig:
-    """Read and validate a run configuration YAML file (UTF-8).
+def load_yaml_model[M: BaseModel](path: Path | str, model: type[M]) -> M:
+    """Read a YAML file (UTF-8) and validate it against a pydantic model.
 
     Raises:
-        ConfigError: the file is missing, unreadable, not valid YAML or not a valid config.
+        ConfigError: the file is missing, unreadable, not valid YAML or not a valid `model`.
     """
     path = Path(path)
     try:
@@ -262,9 +260,18 @@ def load_run_config(path: Path | str) -> RunConfig:
         raise ConfigError(path, ["the top level must be a mapping of fields"])
 
     try:
-        return RunConfig.model_validate(data)
+        return model.model_validate(data)
     except ValidationError as error:
         raise ConfigError.from_validation_error(path, error) from None
+
+
+def load_run_config(path: Path | str) -> RunConfig:
+    """Read and validate a run configuration YAML file (UTF-8).
+
+    Raises:
+        ConfigError: the file is missing, unreadable, not valid YAML or not a valid config.
+    """
+    return load_yaml_model(path, RunConfig)
 
 
 def dump_run_config(config: RunConfig, path: Path | str) -> None:

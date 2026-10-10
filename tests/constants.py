@@ -16,7 +16,7 @@ E5_REVISION = "d128750597153bb5987e10b1c3493a34e5a4502a"
 # Golden fingerprint of configs/example.yaml. It changes whenever a result-affecting value of the
 # example (or a default it relies on) changes. If the change is intended, update this value; it
 # means runs made with the previous config are no longer comparable or reusable from cache.
-EXAMPLE_FINGERPRINT = "76b54d94a1ab31c4077cf3be50b2e2abb70f37d05b2fbceba81e2d2692a4f4e3"
+EXAMPLE_FINGERPRINT = "987f020a5a8f2001a7d682ea25612e214817a028599dbaa31695e4f471fddea1"
 
 # Mini PIAF file with deliberate traps (duplicated context, missing answer, empty question...).
 PIAF_MINI = REPO_ROOT / "tests" / "fixtures" / "piaf_mini.json"

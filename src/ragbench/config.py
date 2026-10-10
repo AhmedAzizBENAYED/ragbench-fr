@@ -132,6 +132,13 @@ class Provider(StrEnum):
     GEMINI = "gemini"
 
 
+class VectorBackend(StrEnum):
+    """Vector store implementation. Part of the run: float precision may differ between
+    backends, so near-ties could swap ranks (ADR 0006)."""
+
+    MEMORY = "memory"
+
+
 class PipelineName(StrEnum):
     """The five evaluated architectures (spec §7)."""
 
@@ -161,6 +168,7 @@ class RetrievalConfig(FrozenModel):
     """Retrieval parameters shared by every pipeline of the run."""
 
     k: int = Field(default=5, ge=1)
+    backend: VectorBackend = VectorBackend.MEMORY
 
 
 class LLMSpec(FrozenModel):

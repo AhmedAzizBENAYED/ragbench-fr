@@ -14,6 +14,7 @@ from ragbench.config import (
     Provider,
     RunConfig,
     Split,
+    VectorBackend,
     dump_run_config,
     load_run_config,
 )
@@ -60,6 +61,7 @@ def test_defaults_follow_the_specification() -> None:
     assert config.data.dataset == "AgentPublic/piaf"
     assert config.embedding.model == "intfloat/multilingual-e5-base"
     assert config.retrieval.k == 5
+    assert config.retrieval.backend is VectorBackend.MEMORY
     assert config.generator.temperature == 0.0
     assert config.description == ""
     assert config.pipelines[1] == CragPipeline(name=PipelineName.CRAG, max_reformulations=1)
@@ -98,6 +100,12 @@ def test_unknown_nested_field_is_rejected() -> None:
     data = _minimal() | {"retrieval": {"kk": 3}}
 
     assert "config.yaml: retrieval.kk: Extra inputs are not permitted" in str(_config_error(data))
+
+
+def test_unknown_backend_is_rejected() -> None:
+    data = _minimal() | {"retrieval": {"backend": "faiss"}}
+
+    assert "config.yaml: retrieval.backend: Input should be 'memory'" in str(_config_error(data))
 
 
 def test_k_zero_is_rejected() -> None:
@@ -349,7 +357,7 @@ def test_dump_writes_resolved_defaults() -> None:
 
     dumped = yaml.safe_load(Path("resolved.yaml").read_text(encoding="utf-8"))
 
-    assert dumped["retrieval"] == {"k": 5}
+    assert dumped["retrieval"] == {"k": 5, "backend": "memory"}
     assert dumped["embedding"] == {
         "model": "intfloat/multilingual-e5-base",
         "revision": E5_REVISION,

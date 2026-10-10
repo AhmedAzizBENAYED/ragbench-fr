@@ -1,0 +1,245 @@
+{
+  "description": "Mini PIAF fixture (same columns as the parquet file). `_note` explains each trap and is ignored by the loader.",
+  "rows": [
+    {
+      "_note": "",
+      "id": "p001",
+      "title": "Tour Eiffel",
+      "context": "La Tour Eiffel a été construite par Gustave Eiffel pour l'Exposition universelle de 1889.",
+      "question": "Qui a construit la Tour Eiffel ?",
+      "answers": {
+        "text": [
+          "Gustave Eiffel"
+        ],
+        "answer_start": [
+          36
+        ]
+      }
+    },
+    {
+      "_note": "answer_start off by one: kept, offsets_repaired",
+      "id": "p002",
+      "title": "Tour Eiffel",
+      "context": "La Tour Eiffel a été construite par Gustave Eiffel pour l'Exposition universelle de 1889.",
+      "question": "Pour quel événement la tour a-t-elle été construite ?",
+      "answers": {
+        "text": [
+          "l'Exposition universelle de 1889"
+        ],
+        "answer_start": [
+          57
+        ]
+      }
+    },
+    {
+      "_note": "duplicated context: NFD accents, double space, trailing space; same document as p001",
+      "id": "p003",
+      "title": "Tour Eiffel",
+      "context": "La Tour Eiffel a été construite  par Gustave Eiffel pour l'Exposition universelle de 1889. ",
+      "question": "En quelle année la tour a-t-elle été achevée ?",
+      "answers": {
+        "text": [
+          "1889"
+        ],
+        "answer_start": [
+          87
+        ]
+      }
+    },
+    {
+      "_note": "",
+      "id": "p004",
+      "title": "Rhône",
+      "context": "Le Rhône prend sa source en Suisse et se jette dans la mer Méditerranée.",
+      "question": "Où le Rhône prend-il sa source ?",
+      "answers": {
+        "text": [
+          "en Suisse"
+        ],
+        "answer_start": [
+          25
+        ]
+      }
+    },
+    {
+      "_note": "duplicate of p004 (whitespace only) with another answer: excluded, answers merged into p004",
+      "id": "p005",
+      "title": "Rhône",
+      "context": "Le Rhône prend sa source en Suisse et se jette dans la mer Méditerranée.",
+      "question": "Où le  Rhône prend-il sa source ? ",
+      "answers": {
+        "text": [
+          "Suisse"
+        ],
+        "answer_start": [
+          28
+        ]
+      }
+    },
+    {
+      "_note": "exact duplicate of p004: excluded",
+      "id": "p006",
+      "title": "Rhône",
+      "context": "Le Rhône prend sa source en Suisse et se jette dans la mer Méditerranée.",
+      "question": "Où le Rhône prend-il sa source ?",
+      "answers": {
+        "text": [
+          "en Suisse"
+        ],
+        "answer_start": [
+          25
+        ]
+      }
+    },
+    {
+      "_note": "",
+      "id": "p007",
+      "title": "Victor Hugo",
+      "context": "Victor Hugo a écrit Les Misérables, publié en 1862.",
+      "question": "Qui a écrit Les Misérables ?",
+      "answers": {
+        "text": [
+          "Victor Hugo"
+        ],
+        "answer_start": [
+          0
+        ]
+      }
+    },
+    {
+      "_note": "empty question: excluded",
+      "id": "p008",
+      "title": "Victor Hugo",
+      "context": "Victor Hugo a écrit Les Misérables, publié en 1862.",
+      "question": "   ",
+      "answers": {
+        "text": [
+          "Victor Hugo"
+        ],
+        "answer_start": [
+          0
+        ]
+      }
+    },
+    {
+      "_note": "answer absent from context: excluded",
+      "id": "p009",
+      "title": "Victor Hugo",
+      "context": "Victor Hugo a écrit Les Misérables, publié en 1862.",
+      "question": "Quand le roman a-t-il été publié ?",
+      "answers": {
+        "text": [
+          "1870"
+        ],
+        "answer_start": [
+          46
+        ]
+      }
+    },
+    {
+      "_note": "",
+      "id": "p010",
+      "title": "Photosynthèse",
+      "context": "La photosynthèse transforme l'énergie lumineuse en énergie chimique.",
+      "question": "Que transforme la photosynthèse ?",
+      "answers": {
+        "text": [
+          "l'énergie lumineuse"
+        ],
+        "answer_start": [
+          28
+        ]
+      }
+    },
+    {
+      "_note": "answer present but far from answer_start: excluded (answer_offset_mismatch)",
+      "id": "p011",
+      "title": "Photosynthèse",
+      "context": "La photosynthèse transforme l'énergie lumineuse en énergie chimique.",
+      "question": "En quelle forme d'énergie ?",
+      "answers": {
+        "text": [
+          "énergie"
+        ],
+        "answer_start": [
+          0
+        ]
+      }
+    },
+    {
+      "_note": "",
+      "id": "p012",
+      "title": "Marie Curie",
+      "context": "Marie Curie a reçu deux prix Nobel.",
+      "question": "Combien de prix Nobel Marie Curie a-t-elle reçus ?",
+      "answers": {
+        "text": [
+          "deux"
+        ],
+        "answer_start": [
+          19
+        ]
+      }
+    },
+    {
+      "_note": "empty answer: excluded",
+      "id": "p013",
+      "title": "Marie Curie",
+      "context": "Marie Curie a reçu deux prix Nobel.",
+      "question": "Qui a reçu deux prix Nobel ?",
+      "answers": {
+        "text": [
+          "  "
+        ],
+        "answer_start": [
+          0
+        ]
+      }
+    },
+    {
+      "_note": "",
+      "id": "p014",
+      "title": "Camembert",
+      "context": "Le camembert est un fromage normand.",
+      "question": "D'où vient le camembert ?",
+      "answers": {
+        "text": [
+          "normand"
+        ],
+        "answer_start": [
+          28
+        ]
+      }
+    },
+    {
+      "_note": "",
+      "id": "p015",
+      "title": "Jupiter",
+      "context": "Jupiter est la plus grande planète du Système solaire.",
+      "question": "Quelle est la plus grande planète du Système solaire ?",
+      "answers": {
+        "text": [
+          "Jupiter"
+        ],
+        "answer_start": [
+          0
+        ]
+      }
+    },
+    {
+      "_note": "only question of its context is excluded: the context is still a corpus document",
+      "id": "p016",
+      "title": "Louvre",
+      "context": "Le Louvre est un musée situé à Paris.",
+      "question": "Où se trouve le Louvre ?",
+      "answers": {
+        "text": [
+          "Lyon"
+        ],
+        "answer_start": [
+          30
+        ]
+      }
+    }
+  ]
+}

@@ -8,6 +8,8 @@ license-files = ["LICENSE"]
 authors = [{ name = "Ahmed Aziz Ben Ayed" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "huggingface-hub>=2.2.0",
+    "pyarrow>=26.0.0",
     "pydantic>=2.14.0",
     "pydantic-settings>=2.15.0",
     "pyyaml>=6.0.3",
@@ -22,6 +24,7 @@ ragbench = "ragbench.cli:app"
 dev = [
     "mypy",
     "pre-commit",
+    "pyarrow-stubs>=20.0.0.20260819",
     "pytest",
     "pytest-cov",
     "pytest-socket",

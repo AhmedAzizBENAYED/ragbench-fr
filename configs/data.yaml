@@ -1,0 +1,23 @@
+# Corpus build parameters (CorpusBuildConfig), used by `uv run ragbench build-corpus`.
+# Changing any value changes data/manifest.json, which the command refuses without --force.
+
+dataset: AgentPublic/piaf
+# Full commit SHA on the Hugging Face Hub (a branch name is rejected).
+# Obtained with: git ls-remote https://huggingface.co/datasets/AgentPublic/piaf
+revision: "bda8c063bc7297180796cd835d1974c0bc71c521"
+# The only data file of the repository at this revision.
+filename: plain_text/train-00000-of-00001.parquet
+# SHA-256 of that file (equal to its Git LFS oid on the Hub); checked after download.
+raw_sha256: "868b00642fd947182dd406becee1f7981c4ab69c2dc78ee5f0e6e7a42d98ebad"
+
+# Seed of the hash ranking that draws the splits (spec §5.3, ADR 0004).
+seed: 42
+
+# Questions per split: dev and test share no document, one question per document, ci ⊂ test.
+sizes:
+  dev: 100
+  test: 300
+  ci: 30
+
+# Committed manifest freezing the source, the corpus and the splits (relative to the repo root).
+manifest_path: data/manifest.json

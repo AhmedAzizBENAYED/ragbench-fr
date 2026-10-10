@@ -19,6 +19,10 @@ venv/
 .env.*
 !.env.example
 
+# Rebuildable data (data/manifest.json is committed)
+data/raw/
+data/processed/
+
 # Tool caches
 .cache/
 .ruff_cache/

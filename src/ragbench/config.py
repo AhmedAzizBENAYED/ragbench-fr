@@ -151,9 +151,10 @@ class DataConfig(FrozenModel):
 
 
 class EmbeddingConfig(FrozenModel):
-    """Embedding model shared by every pipeline of the run."""
+    """Embedding model shared by every pipeline of the run, pinned to an immutable revision."""
 
     model: str = Field(default="intfloat/multilingual-e5-base", min_length=1)
+    revision: CommitSha
 
 
 class RetrievalConfig(FrozenModel):
@@ -217,7 +218,7 @@ class RunConfig(FrozenModel):
     description: str = ""
     seed: int
     data: DataConfig
-    embedding: EmbeddingConfig = EmbeddingConfig()
+    embedding: EmbeddingConfig
     retrieval: RetrievalConfig = RetrievalConfig()
     generator: LLMSpec
     judge: LLMSpec

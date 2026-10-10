@@ -1,0 +1,51 @@
+# Example run configuration (RunConfig). Everything that can change a result lives here;
+# environment variables (.env) never do. Validate with:
+#   uv run ragbench validate-config configs/example.yaml
+# The printed fingerprint covers every field except `name` and `description`.
+#
+# Provider and model choices below are illustrative only: decision D3 (generator and judge
+# providers) is settled in T07, after re-checking free-tier quotas.
+
+name: example
+description: Illustrative configuration running the five pipelines on the dev split.
+
+# Seed for every random choice of the run (sampling, bootstrap).
+seed: 42
+
+data:
+  dataset: AgentPublic/piaf
+  # Full commit SHA of the dataset on the Hugging Face Hub (a branch name is rejected).
+  # Obtained with: git ls-remote https://huggingface.co/datasets/AgentPublic/piaf
+  revision: "bda8c063bc7297180796cd835d1974c0bc71c521"
+  split: dev # dev | test | ci
+
+embedding:
+  model: intfloat/multilingual-e5-base
+
+retrieval:
+  k: 5 # documents retrieved per query
+
+# provider: ollama | groq | gemini. temperature defaults to 0 (spec §6).
+generator:
+  provider: groq
+  model: llama-3.1-8b-instant # https://console.groq.com/docs/models (checked 2026-10-10)
+  temperature: 0
+  max_tokens: 512
+
+# Ideally from a different model family than the generator (self-preference bias, spec §8.2).
+judge:
+  provider: gemini
+  model: gemini-3.8-flash # https://ai.google.dev/gemini-api/docs/models (checked 2026-10-10)
+  temperature: 0
+  max_tokens: 1024
+
+# At least one pipeline, no duplicates. Caps default to the values of spec §7.
+pipelines:
+  - name: closed-book
+  - name: naive-rag
+  - name: adaptive-rag
+    max_llm_calls: 3
+  - name: crag
+    max_reformulations: 1
+  - name: self-rag
+    max_corrections: 2

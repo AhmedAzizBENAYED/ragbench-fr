@@ -10,6 +10,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "pydantic>=2.14.0",
     "pydantic-settings>=2.15.0",
+    "pyyaml>=6.0.3",
     "structlog>=26.1.0",
     "typer",
 ]
@@ -25,6 +26,7 @@ dev = [
     "pytest-cov",
     "pytest-socket",
     "ruff",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [build-system]

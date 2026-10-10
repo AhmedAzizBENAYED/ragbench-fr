@@ -15,6 +15,10 @@ uv run pre-commit install
 uv run ragbench --version
 ```
 
+Copy `.env.example` to `.env` for API keys, paths and logging options (never experiment
+parameters). Check a run configuration and print its fingerprint with
+`uv run ragbench validate-config configs/example.yaml`.
+
 ## Development
 
 | Command          | What it does                                      |

@@ -96,17 +96,23 @@ Format : `(contexte, question, réponse extractive + offset)`.
 
 - **Corpus** = ensemble des contextes uniques (déduplication par hash du texte normalisé), chacun avec un `doc_id` stable.
 - **Vérité terrain de récupération** : pour chaque question, le `doc_id` de son contexte d'origine. C'est ce qui rend les métriques de récupération **déterministes, sans LLM**.
-- **Chunking** ❓ : les contextes PIAF sont des paragraphes déjà courts. Proposition : **un contexte = un chunk** (pas de découpage), pour ne pas introduire une variable de plus. Le découpage reste une extension possible.
+- **Chunking** ✅ : les contextes PIAF sont des paragraphes déjà courts. **Un contexte = un document = un chunk** (pas de découpage), pour ne pas introduire une variable de plus. Le découpage reste une extension possible. Tranché au T03 ([ADR 0004](adr/0004-corpus-and-splits.md)).
+- **Corpus complet** : le corpus contient **tous** les contextes uniques (761 à la révision épinglée), y compris ceux dont aucune question n'est retenue dans un split ; la recherche se fait sur le corpus complet.
+- **Nettoyage** (T03) : offsets vérifiés sur le texte brut avant normalisation (un décalage de ±1 caractère est réparé et compté) ; questions vides, réponses introuvables et doublons (même question normalisée, même document) exclus et comptés ; les réponses des doublons sont fusionnées dans la question gardée (plus petit `question_id`). Textes stockés en NFC sans espaces de bord ; déduplication sur NFC + espaces fusionnés (minuscules et accents réservés à la métrique EM). `doc_id` dérivé du contenu.
 
-### 5.3 Splits (figés, seed fixe)
+### 5.3 Splits (figés, seed fixe) ✅
 
 | Split | Taille | Usage |
 |---|---|---|
-| `dev` | ~100 questions | itérer sur les prompts sans « sur-apprendre » le test |
-| `test` | 200–300 questions | résultats publiés |
-| `ci` | 25–30 questions (sous-ensemble de `test`) | quality gate |
+| `dev` | 100 questions | itérer sur les prompts sans « sur-apprendre » le test |
+| `test` | 300 questions | résultats publiés |
+| `ci` | 30 questions (sous-ensemble de `test`) | quality gate |
 
-Un fichier `data/manifest.json` contient les IDs et les hash de chaque split ; un test vérifie qu'ils ne changent pas.
+**Indépendance** : `dev` et `test` sont disjoints **au niveau des documents**, et chaque split contient **au plus une question par document** (les questions d'un même paragraphe sont corrélées et fausseraient les IC bootstrap). Le tirage se fait par **classement par hachage** (`sha256(f"{seed}:{usage}:{id}")`), sans le module `random`, pour être identique sur toutes les versions de Python ([ADR 0004](adr/0004-corpus-and-splits.md)). Paramètres dans `configs/data.yaml`.
+
+Un fichier `data/manifest.json` (commité, reproductible à l'octet près) contient la source (dataset, révision, SHA-256 du fichier brut), les paramètres de construction, la version de la normalisation, les comptes, les hash du corpus et des questions, les IDs triés et le hash de chaque split, et le hash de son propre contenu ; un test vérifie sa cohérence et un test d'intégration le reconstruit à l'identique.
+
+> **Note (T15)** : le runner vérifiera que la révision de la `RunConfig` correspond à celle du manifeste, et inclura le hash du manifeste dans l'identité du run.
 
 ### 5.4 Risque de contamination
 
@@ -377,7 +383,7 @@ ragbench-fr/
 │   ├── report.py / gate.py
 │   └── cli.py
 ├── prompts/                 # prompts versionnés
-├── configs/                 # configs de runs (YAML)
+├── configs/                 # configs de runs (YAML) + data.yaml (construction du corpus)
 ├── data/manifest.json       # splits figés
 ├── gate/thresholds.yaml
 ├── results/                 # runs officiels + REPORT.md
@@ -442,4 +448,4 @@ Le fichier `CLAUDE.md` du repo reprendra ces règles, pour que chaque session Cl
 3. **D6** démo : explorateur seul (recommandé) ou avec mode live ?
 4. ~~**D8** langue du repo : anglais pour code et docs, français pour données et rapport ?~~ Tranché : voir [ADR 0002](adr/0002-repository-language.md).
 5. ~~**D9** nom du projet ?~~ Tranché : `ragbench-fr`.
-6. Taille du split `test` : 200, 250 ou 300 questions (compromis précision statistique / quota du juge) ?
+6. ~~Taille du split `test` : 200, 250 ou 300 questions (compromis précision statistique / quota du juge) ?~~ Tranché : 300 (dev 100, ci 30), voir §5.3.

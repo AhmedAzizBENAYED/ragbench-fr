@@ -19,6 +19,18 @@ Copy `.env.example` to `.env` for API keys, paths and logging options (never exp
 parameters). Check a run configuration and print its fingerprint with
 `uv run ragbench validate-config configs/example.yaml`.
 
+## Data
+
+The benchmark uses [PIAF](https://huggingface.co/datasets/AgentPublic/piaf), French extractive
+question answering on Wikipedia ([piaf.etalab.studio](https://piaf.etalab.studio); Keraron et al.,
+*Project PIAF: Building a Native French Question-Answering Dataset*, LREC 2020), released under
+the MIT licence. Build the corpus and
+the frozen splits (downloads the pinned revision; checks `data/manifest.json` is unchanged):
+
+```bash
+uv run ragbench build-corpus
+```
+
 ## Development
 
 | Command          | What it does                                      |

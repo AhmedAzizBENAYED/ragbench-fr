@@ -146,7 +146,7 @@ class Pipeline(Protocol):
 @dataclass(frozen=True)
 class PipelineResult:
     answer: str
-    retrieved: list[RetrievedDoc]      # doc_id, score, rang
+    retrieved: list[RetrievedDoc]      # doc_id, title, text, score, rang (artefacts : doc_id, score, rang)
     trace: list[TraceStep]             # nœud, décision, durée, appels LLM
     llm_calls: int
     tokens_in: int
@@ -276,7 +276,7 @@ Les runs « officiels » sont versionnés dans le repo (ils alimentent la démo 
 
 Chaque décision sera formalisée en ADR (`docs/adr/NNN-titre.md`) une fois tranchée.
 
-### D1 — Base vectorielle ❓
+### D1 — Base vectorielle ✅
 
 | Option | Pour | Contre |
 |---|---|---|
@@ -285,6 +285,8 @@ Chaque décision sera formalisée en ADR (`docs/adr/NNN-titre.md`) une fois tran
 | **C. LanceDB** (embarqué) | Une seule implémentation partout, persistance sur disque | Nouvelle techno à justifier ; support du plein texte français à vérifier |
 
 **Recommandation : A.** Le contrat `VectorStore` a de toute façon deux implémentations naturelles : pgvector pour le benchmark, en mémoire pour la démo et les tests unitaires. Ça démontre aussi le principe d'inversion de dépendance, que tu pourras expliquer en entretien.
+
+**Tranché au T05 : option A, en recherche exacte** ([ADR 0006](adr/0006-vector-store.md)). Aucun index approché (ni HNSW, ni IVFFlat) : avec 761 documents le parcours exact est rapide, et c'est le seul mode déterministe. Scores en float64, égalités départagées par `doc_id` (tri par `(-score, doc_id)`), règle que pgvector devra suivre. Le backend fait partie de la `RunConfig` (`retrieval.backend`, inclus dans l'empreinte), car une précision différente peut inverser deux documents quasi à égalité ; l'URL PostgreSQL ira dans `Settings`. Les pipelines ne connaissent que le `Retriever` (`retrieve(question, k) -> list[RetrievedDoc]`).
 
 ### D2 — Modèle d'embedding ✅
 
@@ -445,7 +447,7 @@ Le fichier `CLAUDE.md` du repo reprendra ces règles, pour que chaque session Cl
 |---|---|---|
 | **E0 Fondations** | T01 squelette du repo (uv, ruff, mypy, pytest, pre-commit, CI lint+tests, CLAUDE.md) · T02 configuration (settings, config de run YAML, logs structurés) | — |
 | **E1 Données** | T03 loader PIAF, corpus dédupliqué, splits figés, manifeste + tests d'intégrité | T02 |
-| **E2 Indexation** | T04 embedder (préfixes e5, batch, cache disque) · T05 `VectorStore` + implémentation mémoire · T06 implémentation pgvector + tests d'intégration | T03 |
+| **E2 Indexation** | T04 embedder (préfixes e5, batch, cache disque) · T05 `VectorStore` + implémentation mémoire · T06 implémentation pgvector + tests d'intégration, dont un test d'équivalence de classement avec le store en mémoire (même départage des égalités) | T03 |
 | **E3 Passerelle LLM** | T07 `LLMClient` + fournisseurs (Ollama, Groq, Gemini), sortie structurée · T08 cache SQLite, limiteur RPM/RPD, retry/backoff, comptage d'usage | T02 |
 | **E4 Pipelines** | T09 contrat + closed-book + naive RAG · T10 Adaptive RAG · T11 CRAG · T12 Self-RAG | T05, T08 |
 | **E5 Évaluation** | T13 métriques déterministes (récupération, EM/F1 FR) · T14 juge LLM + jeu annoté + κ · T15 runner (parallélisme borné, reprise, artefacts) + statistiques · T16 rapport (Markdown + graphiques) | T09 |
@@ -458,7 +460,7 @@ Le fichier `CLAUDE.md` du repo reprendra ces règles, pour que chaque session Cl
 
 ## 16. Questions à trancher avant de démarrer
 
-1. **D1** base vectorielle : pgvector + mémoire (recommandé), mémoire seule, ou LanceDB ?
+1. ~~**D1** base vectorielle : pgvector + mémoire (recommandé), mémoire seule, ou LanceDB ?~~ Tranché : option A, recherche exacte (ADR 0006).
 2. **D3** générateur par défaut : Groq (rapide) ou Ollama (local, plus lent) ?
 3. **D6** démo : explorateur seul (recommandé) ou avec mode live ?
 4. ~~**D8** langue du repo : anglais pour code et docs, français pour données et rapport ?~~ Tranché : voir [ADR 0002](adr/0002-repository-language.md).

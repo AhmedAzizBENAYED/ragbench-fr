@@ -29,6 +29,7 @@ the frozen splits (downloads the pinned revision; checks `data/manifest.json` is
 
 ```bash
 uv run ragbench build-corpus
+uv run ragbench build-index    # embeds the corpus (e5, cached) and builds the vector store
 ```
 
 ## Development

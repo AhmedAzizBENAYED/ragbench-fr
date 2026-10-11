@@ -4,8 +4,14 @@ import numpy as np
 import pytest
 
 from ragbench.data.corpus import Document
+from ragbench.index.backends import IndexSpec, IndexStatus, MemoryBackend, VectorsProvider
 from ragbench.index.retriever import RetrievedDoc, Retriever
-from ragbench.index.store import InMemoryVectorStore, VectorStoreError, make_index_key
+from ragbench.index.store import (
+    InMemoryVectorStore,
+    VectorStore,
+    VectorStoreError,
+    make_index_key,
+)
 from tests.fakes import HashingEmbedder
 
 CORPUS_SHA = "c" * 64
@@ -116,3 +122,49 @@ def test_scores_are_python_floats(retriever: Retriever) -> None:
 
     assert type(doc.score) is float
     assert np.isfinite(doc.score)
+
+
+class ExistingIndexBackend:
+    """Persistent backend whose index already exists: it must not need the vectors."""
+
+    persistent = True
+
+    def __init__(self, store: InMemoryVectorStore) -> None:
+        self.store = store
+        self.specs: list[IndexSpec] = []
+
+    def open_or_create(
+        self, spec: IndexSpec, vectors: VectorsProvider, *, rebuild: bool = False
+    ) -> tuple[VectorStore, IndexStatus]:
+        self.specs.append(spec)
+        return self.store, IndexStatus.EXISTING
+
+
+def test_opening_an_existing_index_does_not_embed_passages(embedder: HashingEmbedder) -> None:
+    store = _store(embedder, make_index_key(embedder.identity, CORPUS_SHA), DOCUMENTS)
+    backend = ExistingIndexBackend(store)
+    embedder.calls.clear()
+
+    retriever, status = Retriever.open(embedder, DOCUMENTS, CORPUS_SHA, backend)
+
+    assert status is IndexStatus.EXISTING
+    assert embedder.calls == []
+    [spec] = backend.specs
+    assert spec == IndexSpec(
+        index_key=make_index_key(embedder.identity, CORPUS_SHA),
+        embedder_identity=embedder.identity,
+        corpus_sha256=CORPUS_SHA,
+        doc_ids=tuple(doc.doc_id for doc in DOCUMENTS),
+        dim=embedder.dim,
+    )
+    assert retriever.retrieve("Jupiter", 1)[0].doc_id == "doc_d"
+
+
+def test_memory_backend_always_creates_from_vectors(embedder: HashingEmbedder) -> None:
+    backend = MemoryBackend()
+
+    _, status = Retriever.open(embedder, DOCUMENTS, CORPUS_SHA, backend, rebuild=True)
+
+    assert status is IndexStatus.CREATED
+    assert backend.persistent is False
+    assert [kind for kind, _ in embedder.calls] == ["passage"]

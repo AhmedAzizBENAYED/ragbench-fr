@@ -128,6 +128,7 @@ def build_corpus(
 def _index_summary(result: IndexBuildResult) -> str:
     return "\n".join(
         [
+            f"index:     {result.status.value} ({result.backend.value} backend)",
             f"documents: {result.documents}",
             f"dimension: {result.dim}",
             f"embedder:  {result.embedder_identity}",
@@ -146,6 +147,9 @@ def build_index_command(
     data_config_path: Annotated[
         Path, typer.Option("--data-config", help="Corpus build YAML file (manifest location).")
     ] = Path("configs/data.yaml"),
+    rebuild: Annotated[
+        bool, typer.Option("--rebuild", help="Drop and recreate this index (persistent backends).")
+    ] = False,
 ) -> None:
     """Embed the corpus with the run's embedder (cached) and build its vector store."""
     try:
@@ -161,9 +165,9 @@ def build_index_command(
             result = build_index(
                 config,
                 data_config.manifest_path,
-                settings.data_dir,
-                settings.cache_dir,
+                settings,
                 resources=resources,
+                rebuild=rebuild,
             )
         except RunDataMismatchError as error:
             typer.echo(f"{config_path}: {error}", err=True)
@@ -171,4 +175,9 @@ def build_index_command(
         except (DataError, EmbedderError, CacheError, VectorStoreError) as error:
             typer.echo(str(error), err=True)
             raise typer.Exit(EXIT_DATA_ERROR) from None
+        if rebuild and not result.persistent:
+            typer.echo(
+                f"rebuild:   no effect with the {result.backend.value} backend "
+                "(its index is rebuilt on every run)"
+            )
         typer.echo(_index_summary(result))

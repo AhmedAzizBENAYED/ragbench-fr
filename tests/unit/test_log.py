@@ -186,3 +186,19 @@ def test_library_warnings_are_rendered_once_as_json(capsys: pytest.CaptureFixtur
     assert line["level"] == "warning"
     assert "UserWarning: set HF_TOKEN for higher rate limits" in line["event"]
     assert len(err.splitlines()) == 1  # not also printed raw
+
+
+def test_library_handlers_are_removed_so_records_render_once(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    library = logging.getLogger("huggingface_hub")
+    library.addHandler(logging.StreamHandler())  # what huggingface_hub does at import
+    library.propagate = False
+
+    configure_logging("INFO", "json")
+    logging.getLogger("huggingface_hub.utils._http").warning("set HF_TOKEN")
+
+    err = capsys.readouterr().err
+    assert library.handlers == []
+    assert library.propagate is True
+    assert [line["event"] for line in _json_lines(err)] == ["set HF_TOKEN"]

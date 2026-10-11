@@ -17,6 +17,7 @@ def test_defaults() -> None:
 
     assert settings.groq_api_key is None
     assert settings.gemini_api_key is None
+    assert settings.pg_dsn is None
     assert str(settings.ollama_base_url) == "http://localhost:11434/"
     assert settings.data_dir == Path("data")
     assert settings.cache_dir == Path(".cache")
@@ -128,3 +129,14 @@ def test_get_settings_is_cached_and_cache_can_be_cleared(monkeypatch: pytest.Mon
 def test_non_string_log_level_is_a_validation_error() -> None:
     with pytest.raises(ValidationError, match="log_level"):
         Settings(log_level=10)  # type: ignore[arg-type]
+
+
+def test_postgres_dsn_is_a_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    dsn = "postgresql://user:s3cr3t-pw@db:5432/ragbench"
+    monkeypatch.setenv("RAGBENCH_PG_DSN", dsn)
+
+    settings = Settings()
+
+    assert settings.pg_dsn is not None
+    assert settings.pg_dsn.get_secret_value() == dsn
+    assert "s3cr3t-pw" not in repr(settings)

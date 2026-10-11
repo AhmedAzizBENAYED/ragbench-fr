@@ -2,6 +2,7 @@
 
 import json
 import logging
+import warnings
 from typing import Any
 
 import pytest
@@ -170,3 +171,18 @@ def test_noisy_third_party_loggers_are_quieted(
 
     events = [line["event"] for line in _json_lines(capsys.readouterr().err)]
     assert events == (["disk almost full"] if level == "DEBUG" else [])
+
+
+def test_library_warnings_are_rendered_once_as_json(capsys: pytest.CaptureFixture[str]) -> None:
+    configure_logging("INFO", "json")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("always")
+        warnings.warn("set HF_TOKEN for higher rate limits", UserWarning, stacklevel=1)
+
+    err = capsys.readouterr().err
+    [line] = _json_lines(err)
+    assert line["logger"] == "py.warnings"
+    assert line["level"] == "warning"
+    assert "UserWarning: set HF_TOKEN for higher rate limits" in line["event"]
+    assert len(err.splitlines()) == 1  # not also printed raw

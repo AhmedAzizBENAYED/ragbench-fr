@@ -123,6 +123,9 @@ def configure_logging(level: LogLevel = "INFO", fmt: LogFormat = "json") -> None
     noisy_level = max(logging.WARNING, logging.getLevelNamesMapping()[level])
     for name in NOISY_LOGGERS:
         logging.getLogger(name).setLevel(noisy_level)
+    # Library `warnings.warn` calls go through the same renderer (logger "py.warnings")
+    # instead of being printed a second time, raw, on stderr.
+    logging.captureWarnings(True)
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:

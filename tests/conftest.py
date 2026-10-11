@@ -36,11 +36,14 @@ def _isolate_environment(
 def _reset_logging() -> Iterator[None]:
     root = logging.getLogger()
     handlers, level = list(root.handlers), root.level
-    noisy_levels = {name: logging.getLogger(name).level for name in NOISY_LOGGERS}
+    noisy = {name: logging.getLogger(name) for name in NOISY_LOGGERS}
+    saved = {name: (lg.level, list(lg.handlers), lg.propagate) for name, lg in noisy.items()}
     yield
     logging.captureWarnings(False)
-    for name, noisy_level in noisy_levels.items():
-        logging.getLogger(name).setLevel(noisy_level)
+    for name, (noisy_level, noisy_handlers, propagate) in saved.items():
+        noisy[name].setLevel(noisy_level)
+        noisy[name].handlers[:] = noisy_handlers
+        noisy[name].propagate = propagate
     structlog.reset_defaults()
     structlog.contextvars.clear_contextvars()
     root.handlers[:] = handlers

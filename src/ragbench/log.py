@@ -26,8 +26,9 @@ _SEPARATORS = re.compile(r"[\W_]+")
 _HANDLER_NAME = "ragbench"
 
 # Third-party loggers that log every HTTP request, lock or model-loading step at INFO/DEBUG.
-# They are raised to WARNING (or to the configured level if it is higher).
-# `transformers` also installs its own handler: the embedder re-routes it when loading the model.
+# They are raised to WARNING (or to the configured level if it is higher), and their own
+# handlers (huggingface_hub and transformers install one) are removed so that each record is
+# rendered once, by ours. transformers may add its handler later: the embedder re-routes it.
 NOISY_LOGGERS = (
     "filelock",
     "httpcore",
@@ -122,7 +123,10 @@ def configure_logging(level: LogLevel = "INFO", fmt: LogFormat = "json") -> None
     # Propagated records are not filtered by the root level, hence max(WARNING, level).
     noisy_level = max(logging.WARNING, logging.getLevelNamesMapping()[level])
     for name in NOISY_LOGGERS:
-        logging.getLogger(name).setLevel(noisy_level)
+        library_logger = logging.getLogger(name)
+        library_logger.setLevel(noisy_level)
+        library_logger.handlers.clear()
+        library_logger.propagate = True
     # Library `warnings.warn` calls go through the same renderer (logger "py.warnings")
     # instead of being printed a second time, raw, on stderr.
     logging.captureWarnings(True)

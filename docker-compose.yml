@@ -1,0 +1,25 @@
+# Local PostgreSQL with pgvector for `retrieval.backend: pgvector`. Start with `make db-up`.
+# The image tag is pinned and must match the CI service (a unit test checks it).
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    environment:
+      # Local development credentials only; RAGBENCH_PG_DSN in .env points here.
+      POSTGRES_USER: ragbench
+      POSTGRES_PASSWORD: ragbench
+      POSTGRES_DB: ragbench
+    ports:
+      # 5433 by default: a local PostgreSQL often already listens on 5432.
+      - "${RAGBENCH_PG_PORT:-5433}:5432"
+    volumes:
+      # PostgreSQL 18 images keep their data under /var/lib/postgresql (in 18/docker), no
+      # longer /var/lib/postgresql/data: mount the parent directory.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ragbench -d ragbench"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  pgdata:

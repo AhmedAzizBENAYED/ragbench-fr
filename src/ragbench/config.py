@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = Field(default=None, validation_alias="GROQ_API_KEY")
     gemini_api_key: SecretStr | None = Field(default=None, validation_alias="GEMINI_API_KEY")
     ollama_base_url: HttpUrl = HttpUrl("http://localhost:11434")
+    # PostgreSQL connection string (with password) for `retrieval.backend: pgvector`.
+    pg_dsn: SecretStr | None = None
     data_dir: Path = Path("data")
     cache_dir: Path = Path(".cache")
     results_dir: Path = Path("results")

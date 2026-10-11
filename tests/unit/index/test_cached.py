@@ -154,3 +154,16 @@ def test_stats_are_consistent_under_threads(cached: CachedEmbedder) -> None:
         list(pool.map(lambda _: cached.embed_queries(texts), range(16)))
 
     assert cached.stats == CacheStats(hits=16 * 50, misses=50)
+
+
+def test_context_manager_closes_the_store(
+    monkeypatch: pytest.MonkeyPatch, inner: HashingEmbedder, store: SqliteStore
+) -> None:
+    closed: list[bool] = []
+    monkeypatch.setattr(store, "close", lambda: closed.append(True))
+
+    with CachedEmbedder(inner, store) as cached:
+        cached.embed_queries(["a"])
+        assert closed == []
+
+    assert closed == [True]

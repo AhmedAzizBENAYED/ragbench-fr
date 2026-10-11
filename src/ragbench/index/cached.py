@@ -3,6 +3,8 @@
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from types import TracebackType
+from typing import Self
 
 import numpy as np
 
@@ -56,6 +58,21 @@ class CachedEmbedder:
 
     def embed_passages(self, texts: Sequence[str]) -> Vectors:
         return self._embed(texts, TextKind.PASSAGE, self.inner.embed_passages)
+
+    def close(self) -> None:
+        """Close the cache store (the inner embedder holds no resource to release)."""
+        self.store.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()
 
     @property
     def stats(self) -> CacheStats:

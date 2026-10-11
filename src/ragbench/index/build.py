@@ -6,6 +6,7 @@ embedding cache, so rebuilding is loading the corpus and hitting the cache.
 
 import time
 from collections.abc import Callable
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,9 +41,13 @@ def build_index(
     data_dir: Path,
     cache_dir: Path,
     *,
+    resources: ExitStack,
     embedder_factory: EmbedderFactory | None = None,
 ) -> IndexBuildResult:
     """Check the run against the manifest, load the corpus and fill the configured store.
+
+    Every resource opened here (embedding cache, database connection) is registered on
+    `resources`; the caller closes them when it is done with the retriever.
 
     Raises:
         RunDataMismatchError: the run's dataset or revision differs from the manifest.
@@ -55,7 +60,7 @@ def build_index(
     corpus_sha256: str = manifest["corpus"]["sha256"]
 
     make = embedder_factory or factory.make_embedder
-    embedder = make(config.embedding, cache_dir)
+    embedder = resources.enter_context(make(config.embedding, cache_dir))
     start = time.perf_counter()
     retriever = Retriever.build(embedder, documents, corpus_sha256, config.retrieval.backend)
     seconds = time.perf_counter() - start

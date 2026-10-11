@@ -1,7 +1,9 @@
 """Tests of `build_index` and `ragbench build-index` (fake embedder, no network, no torch)."""
 
+from collections.abc import Iterator
+from contextlib import ExitStack
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 import yaml
@@ -22,13 +24,33 @@ from tests.fakes import HashingEmbedder
 runner = CliRunner()
 
 
+class SpyStore(SqliteStore):
+    opened: ClassVar[list["SpyStore"]] = []
+
+    def __init__(self, path: Path) -> None:
+        super().__init__(path)
+        self.closed = False
+        SpyStore.opened.append(self)
+
+    def close(self) -> None:
+        self.closed = True
+        super().close()
+
+
 def _fake_embedder(config: EmbeddingConfig, cache_dir: Path) -> CachedEmbedder:
-    return CachedEmbedder(HashingEmbedder(), SqliteStore(cache_dir / "embeddings.sqlite3"))
+    return CachedEmbedder(HashingEmbedder(), SpyStore(cache_dir / "embeddings.sqlite3"))
+
+
+@pytest.fixture
+def resources() -> Iterator[ExitStack]:
+    with ExitStack() as stack:
+        yield stack
 
 
 @pytest.fixture(autouse=True)
 def _no_real_model(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(factory, "make_embedder", _fake_embedder)
+    SpyStore.opened.clear()
 
 
 @pytest.fixture
@@ -44,7 +66,10 @@ def run_config(build_config: CorpusBuildConfig) -> RunConfig:
 
 
 def _build(run_config: RunConfig, built: BuildResult) -> Any:
-    return build_index(run_config, built.manifest_path, Path("data"), Path("cache"))
+    with ExitStack() as resources:
+        return build_index(
+            run_config, built.manifest_path, Path("data"), Path("cache"), resources=resources
+        )
 
 
 def test_build_index_returns_a_working_retriever(run_config: RunConfig, built: BuildResult) -> None:
@@ -63,6 +88,24 @@ def test_second_build_only_hits_the_cache(run_config: RunConfig, built: BuildRes
     _build(run_config, built)
 
     assert _build(run_config, built).cache == CacheStats(hits=8, misses=0)
+
+
+def test_resources_are_closed_by_the_caller(run_config: RunConfig, built: BuildResult) -> None:
+    with ExitStack() as resources:
+        result = build_index(
+            run_config, built.manifest_path, Path("data"), Path("cache"), resources=resources
+        )
+        assert result.retriever.retrieve("Jupiter", 1)
+        assert [store.closed for store in SpyStore.opened] == [False]
+
+    assert [store.closed for store in SpyStore.opened] == [True]
+
+
+def test_cli_closes_its_resources(built: BuildResult, config_files: list[str]) -> None:
+    result = runner.invoke(app, ["build-index", *config_files])
+
+    assert result.exit_code == 0
+    assert [store.closed for store in SpyStore.opened] == [True]
 
 
 def test_revision_differing_from_manifest_is_rejected(

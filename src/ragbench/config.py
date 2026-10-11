@@ -139,6 +139,7 @@ class VectorBackend(StrEnum):
     backends, so near-ties could swap ranks (ADR 0006)."""
 
     MEMORY = "memory"
+    PGVECTOR = "pgvector"
 
 
 class PipelineName(StrEnum):

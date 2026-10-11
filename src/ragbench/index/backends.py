@@ -12,7 +12,7 @@ from typing import Protocol
 
 from ragbench.config import Settings, VectorBackend
 from ragbench.index.embedder import Vectors
-from ragbench.index.store import InMemoryVectorStore, VectorStore
+from ragbench.index.store import InMemoryVectorStore, VectorStore, VectorStoreError
 
 VectorsProvider = Callable[[], Vectors]
 
@@ -75,8 +75,19 @@ def _memory(settings: Settings, resources: ExitStack) -> StoreBackend:
     return MemoryBackend()
 
 
+def _pgvector(settings: Settings, resources: ExitStack) -> StoreBackend:
+    from ragbench.index.pgvector_store import PgVectorBackend  # psycopg only when used
+
+    if settings.pg_dsn is None:
+        raise VectorStoreError(
+            "retrieval.backend is pgvector but RAGBENCH_PG_DSN is not set (see .env.example)"
+        )
+    return resources.enter_context(PgVectorBackend.connect(settings.pg_dsn.get_secret_value()))
+
+
 # Extension point: one factory per `retrieval.backend` value. A factory registers on
 # `resources` whatever it opens (e.g. a database connection).
 STORE_BACKENDS: dict[VectorBackend, BackendFactory] = {
     VectorBackend.MEMORY: _memory,
+    VectorBackend.PGVECTOR: _pgvector,
 }

@@ -85,6 +85,7 @@ testpaths = ["tests"]
 addopts = ["--strict-markers", "-m", "not integration"]
 markers = [
     "integration: tests that need real services or network (excluded by default)",
+    "db: tests that need PostgreSQL with pgvector (skipped if unreachable, unless RAGBENCH_REQUIRE_DB=1)",
 ]
 
 [tool.coverage.run]

@@ -17,6 +17,26 @@ jobs:
     name: Lint, type-check and test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # PostgreSQL with pgvector for the db tests; same pinned image as docker-compose.yml (a unit
+    # test keeps them identical). Throwaway credentials of an ephemeral service, not a secret.
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg18-trixie
+        env:
+          POSTGRES_USER: ragbench
+          POSTGRES_PASSWORD: ragbench
+          POSTGRES_DB: ragbench
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ragbench -d ragbench"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      # db tests must run in CI: an unreachable database fails them instead of skipping.
+      RAGBENCH_REQUIRE_DB: "1"
+      RAGBENCH_TEST_PG_DSN: postgresql://ragbench:ragbench@localhost:5432/ragbench
     steps:
       - uses: actions/checkout@v7
         with:

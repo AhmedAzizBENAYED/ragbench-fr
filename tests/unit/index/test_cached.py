@@ -1,12 +1,13 @@
 """Tests of the embedding disk cache."""
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from ragbench.cache import CacheError, SqliteStore
-from ragbench.index.cached import CachedEmbedder
+from ragbench.index.cached import CachedEmbedder, CacheStats
 from ragbench.index.e5 import E5Embedder, EncoderBackend
 from ragbench.index.embedder import EmbedderError, TextKind
 from tests.constants import E5_REVISION
@@ -136,3 +137,20 @@ def test_fully_cached_e5_never_loads_the_model(store: SqliteStore) -> None:
 
     e5().embed_passages(["texte"])
     assert calls == ["m"]  # second embedder: everything cached, no model loaded
+
+
+def test_stats_count_hits_and_distinct_misses(cached: CachedEmbedder) -> None:
+    cached.embed_passages(["a", "b", "a"])
+    cached.embed_passages(["a", "c"])
+
+    assert cached.stats == CacheStats(hits=1, misses=3)
+
+
+def test_stats_are_consistent_under_threads(cached: CachedEmbedder) -> None:
+    texts = [f"texte {i}" for i in range(50)]
+    cached.embed_queries(texts)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(lambda _: cached.embed_queries(texts), range(16)))
+
+    assert cached.stats == CacheStats(hits=16 * 50, misses=50)

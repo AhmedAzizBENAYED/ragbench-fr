@@ -11,10 +11,15 @@ import typer
 from pydantic import ValidationError
 
 from ragbench import __version__
+from ragbench.cache import CacheError
 from ragbench.config import ConfigError, get_settings, load_run_config
 from ragbench.data import DataError
 from ragbench.data.build import BuildResult, build_dataset
 from ragbench.data.build_config import load_corpus_build_config
+from ragbench.data.processed import RunDataMismatchError
+from ragbench.index.build import IndexBuildResult, build_index
+from ragbench.index.embedder import EmbedderError
+from ragbench.index.store import VectorStoreError
 from ragbench.log import configure_logging, get_logger
 
 EXIT_INVALID_CONFIG = 1
@@ -117,3 +122,46 @@ def build_corpus(
         typer.echo(str(error), err=True)
         raise typer.Exit(EXIT_DATA_ERROR) from None
     typer.echo(_summary(result))
+
+
+def _index_summary(result: IndexBuildResult) -> str:
+    return "\n".join(
+        [
+            f"documents: {result.documents}",
+            f"dimension: {result.dim}",
+            f"embedder:  {result.embedder_identity}",
+            f"corpus:    sha256 {result.corpus_sha256}",
+            f"duration:  {result.seconds:.2f} s",
+            f"cache:     {result.cache.hits} hits, {result.cache.misses} misses",
+        ]
+    )
+
+
+@app.command("build-index")
+def build_index_command(
+    config_path: Annotated[
+        Path, typer.Option("--config", help="Run configuration YAML file.")
+    ] = Path("configs/example.yaml"),
+    data_config_path: Annotated[
+        Path, typer.Option("--data-config", help="Corpus build YAML file (manifest location).")
+    ] = Path("configs/data.yaml"),
+) -> None:
+    """Embed the corpus with the run's embedder (cached) and build its vector store."""
+    try:
+        config = load_run_config(config_path)
+        data_config = load_corpus_build_config(data_config_path)
+    except ConfigError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(EXIT_INVALID_CONFIG) from None
+    settings = get_settings()
+    try:
+        result = build_index(
+            config, data_config.manifest_path, settings.data_dir, settings.cache_dir
+        )
+    except RunDataMismatchError as error:
+        typer.echo(f"{config_path}: {error}", err=True)
+        raise typer.Exit(EXIT_INVALID_CONFIG) from None
+    except (DataError, EmbedderError, CacheError, VectorStoreError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(EXIT_DATA_ERROR) from None
+    typer.echo(_index_summary(result))

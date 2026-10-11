@@ -65,3 +65,22 @@ def load_corpus(processed_dir: Path, manifest: Manifest) -> list[Document]:
             "it is stale or modified: rerun `ragbench build-corpus`"
         )
     return documents
+
+
+class RunDataMismatchError(DataError):
+    """The run configuration targets other data than the manifest describes."""
+
+
+def check_run_data(dataset: str, revision: str, manifest: Manifest) -> None:
+    """Ensure a run's `data.dataset` and `data.revision` are those of the manifest.
+
+    Raises:
+        RunDataMismatchError: they differ.
+    """
+    source = manifest["source"]
+    if (dataset, revision) != (source["dataset"], source["revision"]):
+        raise RunDataMismatchError(
+            f"the run config targets {dataset}@{revision} but the data manifest was built from "
+            f"{source['dataset']}@{source['revision']}; align data.revision with "
+            "configs/data.yaml or rebuild the corpus"
+        )

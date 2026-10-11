@@ -1,6 +1,8 @@
 """Disk cache for any `Embedder`, by composition: a known embedding is never recomputed."""
 
+import threading
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -19,6 +21,14 @@ from ragbench.index.embedder import (
 _STORED_DTYPE = np.dtype("<f4")
 
 
+@dataclass(frozen=True)
+class CacheStats:
+    """Texts served from the cache (`hits`) and distinct texts computed by `inner` (`misses`)."""
+
+    hits: int
+    misses: int
+
+
 class CachedEmbedder:
     """`Embedder` that serves known vectors from a `SqliteStore` and delegates the rest.
 
@@ -29,6 +39,9 @@ class CachedEmbedder:
     def __init__(self, inner: Embedder, store: SqliteStore) -> None:
         self.inner = inner
         self.store = store
+        self._lock = threading.Lock()  # counters are updated from several threads (T15)
+        self._hits = 0
+        self._misses = 0
 
     @property
     def identity(self) -> str:
@@ -43,6 +56,12 @@ class CachedEmbedder:
 
     def embed_passages(self, texts: Sequence[str]) -> Vectors:
         return self._embed(texts, TextKind.PASSAGE, self.inner.embed_passages)
+
+    @property
+    def stats(self) -> CacheStats:
+        """Cumulative hits and misses since creation."""
+        with self._lock:
+            return CacheStats(self._hits, self._misses)
 
     def key(self, kind: TextKind, text: str) -> str:
         """Cache key of one text."""
@@ -60,6 +79,9 @@ class CachedEmbedder:
         missing = list(
             dict.fromkeys(t for t, k in zip(checked, keys, strict=True) if k not in stored)
         )
+        with self._lock:
+            self._hits += sum(key in stored for key in keys)
+            self._misses += len(missing)
         if missing:
             computed = check_shape(compute(missing), len(missing), self.dim)
             new = {

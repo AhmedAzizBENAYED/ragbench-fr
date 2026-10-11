@@ -15,6 +15,9 @@ import structlog
 from ragbench.config import get_settings
 from ragbench.log import NOISY_LOGGERS
 
+# Shared fixtures (mini PIAF corpus, PostgreSQL) for unit, db and integration tests.
+pytest_plugins = ("tests.piaf_fixtures", "tests.db_fixtures")
+
 _UNPREFIXED_VARIABLES = frozenset({"GROQ_API_KEY", "GEMINI_API_KEY"})
 
 

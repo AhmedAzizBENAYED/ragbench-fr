@@ -105,7 +105,9 @@ def test_unknown_nested_field_is_rejected() -> None:
 def test_unknown_backend_is_rejected() -> None:
     data = _minimal() | {"retrieval": {"backend": "faiss"}}
 
-    assert "config.yaml: retrieval.backend: Input should be 'memory'" in str(_config_error(data))
+    assert "config.yaml: retrieval.backend: Input should be 'memory' or 'pgvector'" in str(
+        _config_error(data)
+    )
 
 
 def test_k_zero_is_rejected() -> None:

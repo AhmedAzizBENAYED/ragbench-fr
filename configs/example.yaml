@@ -27,7 +27,7 @@ embedding:
 
 retrieval:
   k: 5 # documents retrieved per query
-  backend: memory # vector store: memory (exact search); pgvector arrives with T06
+  backend: memory # vector store, exact search: memory | pgvector (needs RAGBENCH_PG_DSN)
 
 # provider: ollama | groq | gemini. temperature defaults to 0 (spec §6).
 generator:

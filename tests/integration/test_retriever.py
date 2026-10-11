@@ -9,7 +9,7 @@ import json
 from contextlib import ExitStack
 from pathlib import Path
 
-from ragbench.config import load_run_config
+from ragbench.config import Settings, load_run_config
 from ragbench.data.build import build_dataset
 from ragbench.data.build_config import load_corpus_build_config
 from ragbench.index.build import build_index
@@ -29,8 +29,7 @@ def test_retriever_reproduces_t04_dev_figures(tmp_path: Path) -> None:
         result = build_index(
             config,
             isolated.manifest_path,
-            tmp_path / "data",
-            tmp_path / "cache",
+            Settings(data_dir=tmp_path / "data", cache_dir=tmp_path / "cache"),
             resources=resources,
         )
 

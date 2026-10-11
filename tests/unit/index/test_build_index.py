@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from ragbench.cache import SqliteStore
 from ragbench.cli import EXIT_DATA_ERROR, EXIT_INVALID_CONFIG, app
-from ragbench.config import EmbeddingConfig, RunConfig, load_run_config
+from ragbench.config import EmbeddingConfig, RunConfig, Settings, load_run_config
 from ragbench.data.build import BuildResult, Downloader, build_dataset
 from ragbench.data.build_config import CorpusBuildConfig
 from ragbench.data.processed import CORPUS_FILE, RunDataMismatchError
@@ -22,6 +22,7 @@ from tests.constants import EXAMPLE_CONFIG
 from tests.fakes import HashingEmbedder
 
 runner = CliRunner()
+SETTINGS = Settings(data_dir=Path("data"), cache_dir=Path("cache"))
 
 
 class SpyStore(SqliteStore):
@@ -67,9 +68,7 @@ def run_config(build_config: CorpusBuildConfig) -> RunConfig:
 
 def _build(run_config: RunConfig, built: BuildResult) -> Any:
     with ExitStack() as resources:
-        return build_index(
-            run_config, built.manifest_path, Path("data"), Path("cache"), resources=resources
-        )
+        return build_index(run_config, built.manifest_path, SETTINGS, resources=resources)
 
 
 def test_build_index_returns_a_working_retriever(run_config: RunConfig, built: BuildResult) -> None:
@@ -92,9 +91,7 @@ def test_second_build_only_hits_the_cache(run_config: RunConfig, built: BuildRes
 
 def test_resources_are_closed_by_the_caller(run_config: RunConfig, built: BuildResult) -> None:
     with ExitStack() as resources:
-        result = build_index(
-            run_config, built.manifest_path, Path("data"), Path("cache"), resources=resources
-        )
+        result = build_index(run_config, built.manifest_path, SETTINGS, resources=resources)
         assert result.retriever.retrieve("Jupiter", 1)
         assert [store.closed for store in SpyStore.opened] == [False]
 
@@ -185,3 +182,15 @@ def test_cli_rejects_invalid_config(config_files: list[str]) -> None:
 
     assert result.exit_code == EXIT_INVALID_CONFIG
     assert "run.yaml: name: Field required" in result.stderr
+
+
+def test_cli_reports_index_status_and_rebuild_without_effect(
+    built: BuildResult, config_files: list[str]
+) -> None:
+    plain = runner.invoke(app, ["build-index", *config_files])
+    rebuilt = runner.invoke(app, ["build-index", *config_files, "--rebuild"])
+
+    assert "index:     created (memory backend)" in plain.stdout
+    assert "rebuild:" not in plain.stdout
+    assert rebuilt.exit_code == 0
+    assert "rebuild:   no effect with the memory backend" in rebuilt.stdout

@@ -1,20 +1,13 @@
 """The retriever: the only retrieval interface pipelines see (no vectors, no backend)."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Self
 
-from ragbench.config import VectorBackend
 from ragbench.data.corpus import Document
-from ragbench.index.embedder import Embedder, Vectors
-from ragbench.index.store import InMemoryVectorStore, VectorStore, VectorStoreError, make_index_key
-
-StoreFactory = Callable[[Sequence[str], Vectors, str], VectorStore]
-
-# Extension point: T06 registers the pgvector backend here.
-STORE_BACKENDS: dict[VectorBackend, StoreFactory] = {
-    VectorBackend.MEMORY: InMemoryVectorStore.from_vectors,
-}
+from ragbench.index.backends import IndexSpec, IndexStatus, MemoryBackend, StoreBackend
+from ragbench.index.embedder import Embedder
+from ragbench.index.store import VectorStore, VectorStoreError, make_index_key
 
 
 @dataclass(frozen=True)
@@ -63,21 +56,38 @@ class Retriever:
         self._documents = {document.doc_id: document for document in documents}
 
     @classmethod
-    def build(
+    def open(
         cls,
         embedder: Embedder,
         documents: Sequence[Document],
         corpus_sha256: str,
-        backend: VectorBackend = VectorBackend.MEMORY,
-    ) -> Self:
-        """Embed every passage (cache hits after the first time) and fill a store."""
-        vectors = embedder.embed_passages([document.text for document in documents])
-        store = STORE_BACKENDS[backend](
-            [document.doc_id for document in documents],
-            vectors,
-            make_index_key(embedder.identity, corpus_sha256),
+        backend: StoreBackend,
+        *,
+        rebuild: bool = False,
+    ) -> tuple[Self, IndexStatus]:
+        """Open the backend's index for this embedder and corpus, creating it if needed.
+
+        Passages are embedded only if the backend has to fill the index.
+        """
+        spec = IndexSpec(
+            index_key=make_index_key(embedder.identity, corpus_sha256),
+            embedder_identity=embedder.identity,
+            corpus_sha256=corpus_sha256,
+            doc_ids=tuple(document.doc_id for document in documents),
+            dim=embedder.dim,
         )
-        return cls(embedder, store, documents, corpus_sha256)
+        store, status = backend.open_or_create(
+            spec,
+            lambda: embedder.embed_passages([document.text for document in documents]),
+            rebuild=rebuild,
+        )
+        return cls(embedder, store, documents, corpus_sha256), status
+
+    @classmethod
+    def build(cls, embedder: Embedder, documents: Sequence[Document], corpus_sha256: str) -> Self:
+        """In-memory retriever: embed every passage (cache hits after the first time)."""
+        retriever, _ = cls.open(embedder, documents, corpus_sha256, MemoryBackend())
+        return retriever
 
     def __len__(self) -> int:
         return len(self._documents)

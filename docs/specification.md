@@ -288,6 +288,8 @@ Chaque décision sera formalisée en ADR (`docs/adr/NNN-titre.md`) une fois tran
 
 **Tranché au T05 : option A, en recherche exacte** ([ADR 0006](adr/0006-vector-store.md)). Aucun index approché (ni HNSW, ni IVFFlat) : avec 761 documents le parcours exact est rapide, et c'est le seul mode déterministe. Scores en float64, égalités départagées par `doc_id` (tri par `(-score, doc_id)`), règle que pgvector devra suivre. Le backend fait partie de la `RunConfig` (`retrieval.backend`, inclus dans l'empreinte), car une précision différente peut inverser deux documents quasi à égalité ; l'URL PostgreSQL ira dans `Settings`. Les pipelines ne connaissent que le `Retriever` (`retrieve(question, k) -> list[RetrievedDoc]`).
 
+**T06 :** backend pgvector en recherche exacte (`pgvector/pgvector:0.8.7-pg18-trixie`, aucun index ANN, départage `doc_id COLLATE "C"`). Test d'équivalence sur `dev` (vrai e5, top-10 des 100 questions) : classements **strictement identiques**, écart de score maximal 1,8e-7. Les runs officiels utilisent pgvector ; le store en mémoire reste le défaut pour les tests, la démo et la CI.
+
 ### D2 — Modèle d'embedding ✅
 
 `intfloat/multilingual-e5-base` via `sentence-transformers`, sur CPU (torch CPU uniquement), à la révision épinglée `d128750597153bb5987e10b1c3493a34e5a4502a` (`embedding.revision`, obligatoire dans la `RunConfig`). Tranché au T04 ([ADR 0005](adr/0005-embedder.md)).

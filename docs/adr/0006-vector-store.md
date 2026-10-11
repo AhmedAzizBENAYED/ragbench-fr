@@ -38,6 +38,44 @@ or on a storage backend.
   only `doc_id`, `score` and `rank`.
 - `build-index` checks that the run's `data.dataset` and `data.revision` match the manifest.
 
+## pgvector backend (T06)
+
+- **Image** `pgvector/pgvector:0.8.7-pg18-trixie`, pinned identically in `docker-compose.yml` and
+  the CI service (a unit test compares them). Host port 5433 by default.
+- **PostgreSQL 18 volume:** the official images keep their data under
+  `/var/lib/postgresql/18/docker`; the named volume is mounted at `/var/lib/postgresql`, not at
+  the former `/var/lib/postgresql/data`.
+- **Schema** (`SCHEMA_VERSION = 1`, created with `IF NOT EXISTS`, no migration tool): a metadata
+  table `indexes` (`index_key`, `identity`, `corpus_sha256`, `dim`, `count`, `schema_version`)
+  and `vectors` (`index_key`, `doc_id`, `embedding vector`, primary key `(index_key, doc_id)`).
+  The `vector` column has no fixed dimension so several models can coexist. The only index is
+  the primary key's btree; a test checks that no `hnsw` or `ivfflat` index exists.
+- **Atomic filling:** metadata and every vector are written in one transaction; an index is
+  complete or absent. Opening checks key, identity, corpus, dimension, count and schema version,
+  and names the command to run (`build-index`, or `build-index --rebuild`) otherwise.
+- **Lazy backends:** `StoreBackend.open_or_create(spec, vectors, rebuild)` receives the passage
+  vectors as a callable, so `build-index` on an existing pgvector index embeds nothing.
+- **Ranking:** `ORDER BY embedding <#> query, doc_id COLLATE "C"` (score = −distance). Without
+  `COLLATE "C"`, the database collation (`en_US.utf8` in the image) sorts `doc_a` before `doc_B`
+  whereas Python sorts `doc_B` first: ties would be broken differently from the in-memory store.
+- **Concurrency:** one connection per backend, shared by its stores behind a lock; a pool only if
+  the runner (T15) measures contention. Connection errors become readable `VectorStoreError`s
+  without the password.
+- **Settings:** `RAGBENCH_PG_DSN` (`SecretStr`, no default) in the environment, never in the run
+  config.
+
+### Equivalence with the in-memory store
+
+With the real e5 model on the 100 `dev` questions, the top-10 rankings of both backends are
+**strictly identical** (1,000 ranks, no difference). The largest score gap is **1.8e-7**
+(pgvector computes the inner product in float32, the in-memory store in float64). The backend
+stays part of the run fingerprint anyway: it costs nothing and remains honest should a future
+corpus or model produce a near-tie.
+
+**Benchmark backend:** official runs use `pgvector`, as D1 intends; the in-memory store remains
+the default of `configs/example.yaml` and serves tests, the demo and any context without a
+database. Since rankings are identical, results do not depend on this choice today.
+
 ## Consequences
 
 - Retrieval is reproducible across machines: through the Retriever, dev gives exactly T04's

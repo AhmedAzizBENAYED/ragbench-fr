@@ -32,6 +32,19 @@ uv run ragbench build-corpus
 uv run ragbench build-index    # embeds the corpus (e5, cached) and builds the vector store
 ```
 
+### PostgreSQL backend (pgvector)
+
+Set `retrieval.backend: pgvector` in the run config and `RAGBENCH_PG_DSN` in `.env` (see
+`.env.example`), then:
+
+```bash
+make db-up                 # docker compose up -d --wait (pgvector, host port 5433)
+uv run ragbench build-index --config <your-config.yaml>   # fills the index once
+uv run ragbench build-index --config <your-config.yaml>   # "existing": nothing to do
+```
+
+`--rebuild` drops and recreates the index of the current embedder and corpus only.
+
 ## Development
 
 | Command          | What it does                                      |
@@ -44,6 +57,7 @@ uv run ragbench build-index    # embeds the corpus (e5, cached) and builds the v
 | `make check`     | All of the above checks (format in check mode)    |
 
 Integration tests are excluded by default: `uv run pytest -m integration`.
+Database tests (`db` marker) need PostgreSQL: run `make db-up` first, otherwise they are skipped.
 
 ## License
 

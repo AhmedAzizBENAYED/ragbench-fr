@@ -15,6 +15,7 @@ uv sync                          # install (Python 3.12 is fetched by uv if need
 make check                       # lint + format check + mypy --strict + tests with coverage
 make lint | format | typecheck | test
 uv run pytest -m integration     # integration tests (excluded by default)
+make db-up                       # PostgreSQL for `db` tests: run before `make check` for full coverage
 uv run pre-commit run --all-files
 ```
 
@@ -38,6 +39,8 @@ report: French.
 - Prompts live in `prompts/`, never hard-coded in Python.
 - No network in unit tests (enforced by pytest-socket in `tests/unit/conftest.py`); use
   deterministic fake `LLMClient` and `Embedder`.
+- Tests needing PostgreSQL live in `tests/db/` (marker `db`): skipped if unreachable locally,
+  failing in CI (`RAGBENCH_REQUIRE_DB=1`).
 - Tests run in a temporary working directory: read repository files via `tests.constants.REPO_ROOT`,
   never relative paths. Test modules never import from other test modules.
 - No secrets in code or history; configuration via environment / `.env` (git-ignored).

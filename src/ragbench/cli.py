@@ -4,6 +4,7 @@ Command output goes to stdout; logs and error messages go to stderr.
 Commands (build-corpus, build-index, run, report, gate) are added by their own tickets.
 """
 
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Annotated
 
@@ -154,14 +155,20 @@ def build_index_command(
         typer.echo(str(error), err=True)
         raise typer.Exit(EXIT_INVALID_CONFIG) from None
     settings = get_settings()
-    try:
-        result = build_index(
-            config, data_config.manifest_path, settings.data_dir, settings.cache_dir
-        )
-    except RunDataMismatchError as error:
-        typer.echo(f"{config_path}: {error}", err=True)
-        raise typer.Exit(EXIT_INVALID_CONFIG) from None
-    except (DataError, EmbedderError, CacheError, VectorStoreError) as error:
-        typer.echo(str(error), err=True)
-        raise typer.Exit(EXIT_DATA_ERROR) from None
-    typer.echo(_index_summary(result))
+    # build-index creates the cache and store connections, so it closes them.
+    with ExitStack() as resources:
+        try:
+            result = build_index(
+                config,
+                data_config.manifest_path,
+                settings.data_dir,
+                settings.cache_dir,
+                resources=resources,
+            )
+        except RunDataMismatchError as error:
+            typer.echo(f"{config_path}: {error}", err=True)
+            raise typer.Exit(EXIT_INVALID_CONFIG) from None
+        except (DataError, EmbedderError, CacheError, VectorStoreError) as error:
+            typer.echo(str(error), err=True)
+            raise typer.Exit(EXIT_DATA_ERROR) from None
+        typer.echo(_index_summary(result))

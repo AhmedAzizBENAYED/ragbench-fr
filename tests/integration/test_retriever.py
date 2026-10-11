@@ -6,6 +6,7 @@ scores, ties by doc_id) must give exactly the same counts. Official metrics arri
 """
 
 import json
+from contextlib import ExitStack
 from pathlib import Path
 
 from ragbench.config import load_run_config
@@ -24,23 +25,30 @@ def test_retriever_reproduces_t04_dev_figures(tmp_path: Path) -> None:
     built = build_dataset(isolated, tmp_path / "data")
     config = load_run_config(EXAMPLE_CONFIG)
 
-    result = build_index(config, isolated.manifest_path, tmp_path / "data", tmp_path / "cache")
-
-    questions = {
-        record["question_id"]: record
-        for record in map(
-            json.loads,
-            (tmp_path / "data" / "processed" / "questions.jsonl")
-            .read_text(encoding="utf-8")
-            .splitlines(),
+    with ExitStack() as resources:
+        result = build_index(
+            config,
+            isolated.manifest_path,
+            tmp_path / "data",
+            tmp_path / "cache",
+            resources=resources,
         )
-    }
-    dev = [questions[qid] for qid in built.manifest["splits"]["dev"]["question_ids"]]
-    top1 = recall_at_5 = 0
-    for question in dev:
-        retrieved = [doc.doc_id for doc in result.retriever.retrieve(question["question"], 5)]
-        top1 += retrieved[0] == question["doc_id"]
-        recall_at_5 += question["doc_id"] in retrieved
+
+        questions = {
+            record["question_id"]: record
+            for record in map(
+                json.loads,
+                (tmp_path / "data" / "processed" / "questions.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines(),
+            )
+        }
+        dev = [questions[qid] for qid in built.manifest["splits"]["dev"]["question_ids"]]
+        top1 = recall_at_5 = 0
+        for question in dev:
+            retrieved = [doc.doc_id for doc in result.retriever.retrieve(question["question"], 5)]
+            top1 += retrieved[0] == question["doc_id"]
+            recall_at_5 += question["doc_id"] in retrieved
 
     assert len(dev) == 100
     assert (top1, recall_at_5) == (T04_TOP1, T04_RECALL_AT_5)

@@ -13,7 +13,8 @@ EMBEDDING_CACHE_FILE = "embeddings.sqlite3"
 def make_embedder(config: EmbeddingConfig, cache_dir: Path) -> CachedEmbedder:
     """e5 embedder at the pinned revision, behind the disk cache in `cache_dir`.
 
-    Nothing is loaded until a text is missing from the cache.
+    Nothing is loaded until a text is missing from the cache. The caller closes it (it is a
+    context manager).
     """
     store = SqliteStore(cache_dir / EMBEDDING_CACHE_FILE)
     return CachedEmbedder(E5Embedder(config.model, config.revision), store)

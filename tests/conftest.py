@@ -35,6 +35,7 @@ def _reset_logging() -> Iterator[None]:
     handlers, level = list(root.handlers), root.level
     noisy_levels = {name: logging.getLogger(name).level for name in NOISY_LOGGERS}
     yield
+    logging.captureWarnings(False)
     for name, noisy_level in noisy_levels.items():
         logging.getLogger(name).setLevel(noisy_level)
     structlog.reset_defaults()
